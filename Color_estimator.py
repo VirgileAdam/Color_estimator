@@ -28,60 +28,133 @@ print("All dependencies are installed and imported successfully.")
 import numpy as np
 import matplotlib.pyplot as plt
 from PyQt5.QtWidgets import (
-    QApplication, QVBoxLayout, QPushButton, QWidget, QFileDialog, QLabel, QCheckBox, QHBoxLayout, QMessageBox, QLineEdit, QSlider, QComboBox
+    QApplication, QVBoxLayout, QPushButton, QWidget, QFileDialog, QLabel, QCheckBox, QHBoxLayout, QMessageBox,
+    QLineEdit, QSlider, QComboBox
 )
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import pandas as pd
 from PyQt5.QtGui import QPixmap
 from scipy.interpolate import interp1d
 from PyQt5.QtCore import Qt
-from color_conversion import simulate_color
 
-def wavelength_to_rgb(wavelength):
-    if 380 <= wavelength < 440:
-        r = -(wavelength - 440) / (440 - 380)
-        g = 0
-        b = 1
-    elif 440 <= wavelength < 490:
-        r = 0
-        g = (wavelength - 440) / (490 - 440)
-        b = 1
-    elif 490 <= wavelength < 510:
-        r = 0
-        g = 1
-        b = -(wavelength - 510) / (510 - 490)
-    elif 510 <= wavelength < 580:
-        r = (wavelength - 510) / (580 - 510)
-        g = 1
-        b = 0
-    elif 580 <= wavelength < 645:
-        r = 1
-        g = -(wavelength - 645) / (645 - 580)
-        b = 0
-    elif 645 <= wavelength <= 750:
-        r = 1
-        g = 0
-        b = 0
-    else:
-        r = g = b = 0  # Wavelength outside visible range
+class ColorUtils:
+    def wavelength_to_rgb(wavelength):
+        if 380 <= wavelength < 440:
+            r = -(wavelength - 440) / (440 - 380)
+            g = 0
+            b = 1
+        elif 440 <= wavelength < 490:
+            r = 0
+            g = (wavelength - 440) / (490 - 440)
+            b = 1
+        elif 490 <= wavelength < 510:
+            r = 0
+            g = 1
+            b = -(wavelength - 510) / (510 - 490)
+        elif 510 <= wavelength < 580:
+            r = (wavelength - 510) / (580 - 510)
+            g = 1
+            b = 0
+        elif 580 <= wavelength < 645:
+            r = 1
+            g = -(wavelength - 645) / (645 - 580)
+            b = 0
+        elif 645 <= wavelength <= 750:
+            r = 1
+            g = 0
+            b = 0
+        else:
+            r = g = b = 0
 
-    # Intensity adjustment
-    if 380 <= wavelength < 420:
-        factor = 0.3 + 0.7 * (wavelength - 380) / (420 - 380)
-    elif 420 <= wavelength < 645:
-        factor = 1.0
-    elif 645 <= wavelength <= 750:
-        factor = 0.3 + 0.7 * (750 - wavelength) / (750 - 645)
-    else:
-        factor = 0
+        if 380 <= wavelength < 420:
+            factor = 0.3 + 0.7 * (wavelength - 380) / (420 - 380)
+        elif 420 <= wavelength < 645:
+            factor = 1.0
+        elif 645 <= wavelength <= 750:
+            factor = 0.3 + 0.7 * (750 - wavelength) / (750 - 645)
+        else:
+            factor = 0
 
-    r = round(r * factor, 3)
-    g = round(g * factor, 3)
-    b = round(b * factor, 3)
-    return r, g, b
+        r = round(r * factor, 3)
+        g = round(g * factor, 3)
+        b = round(b * factor, 3)
+        return r, g, b
 
+class DaltonismSimulator:
+    REFERENCE_COLORS = {
+        "red": np.array([255, 0, 0]),
+        "green": np.array([0, 255, 0]),
+        "blue": np.array([0, 0, 255]),
+        "yellow": np.array([255, 255, 0]),
+        "cyan": np.array([0, 255, 255]),
+        "violet": np.array([174, 138, 255]),
+        "orange": np.array([255, 128, 0]),
+        "pink": np.array([255, 102, 204]),
+        "light_blue": np.array([135, 206, 250]),
+        "light_green": np.array([144, 238, 144]),
+        "brown": np.array([139, 69, 19]),
+        "gray": np.array([128, 128, 128]),
+    }
 
-class SpectreAbsorption(QWidget):
+    TRANSFORMATIONS = {
+        "protanopia": {
+            "red": np.array([134, 122, 57]),
+            "green": np.array([246, 218, 0]),
+            "blue": np.array([0, 74, 156]),
+            "yellow": np.array([255, 226, 90]),
+            "cyan": np.array([123, 226, 203]),
+            "violet": np.array([120, 156, 254]),
+            "orange": np.array([184, 164, 22]),
+            "pink": np.array([129, 157, 246]),
+            "light_blue": np.array([208, 206, 217]),
+            "light_green": np.array([235, 215, 135]),
+            "brown": np.array([100, 89, 24]),
+            "gray": np.array([130, 127, 128]),
+        },
+        "deuteranopia": {
+            "red": np.array([153, 115, 0]),
+            "green": np.array([255, 211, 143]),
+            "blue": np.array([0, 80, 132]),
+            "yellow": np.array([255, 217, 112]),
+            "cyan": np.array([102, 217, 195]),
+            "violet": np.array([109, 159, 250]),
+            "orange": np.array([207, 155, 0]),
+            "pink": np.array([158, 157, 195]),
+            "light_blue": np.array([216, 201, 230]),
+            "light_green": np.array([255, 207, 155]),
+            "brown": np.array([112, 84, 8]),
+            "gray": np.array([140, 124, 129]),
+        },
+        "tritanopia": {
+            "red": np.array([237, 30, 25]),
+            "green": np.array([113, 236, 255]),
+            "blue": np.array([0, 86, 89]),
+            "yellow": np.array([255, 236, 143]),
+            "cyan": np.array([102, 226, 255]),
+            "violet": np.array([157, 158, 171]),
+            "orange": np.array([255, 122, 129]),
+            "pink": np.array([248, 120, 129]),
+            "light_blue": np.array([146, 219, 237]),
+            "light_green": np.array([164, 226, 244]),
+            "brown": np.array([141, 64, 69]),
+            "gray": np.array([129, 127, 137]),
+        }
+    }
+
+    def interpolate_color(color, daltonism_type):
+        distances = {ref: np.linalg.norm(color - val) for ref, val in DaltonismSimulator.REFERENCE_COLORS.items()}
+        closest_colors = sorted(distances, key=distances.get)[:2]
+        c1, c2 = closest_colors
+        d1, d2 = distances[c1], distances[c2]
+        t1, t2 = DaltonismSimulator.TRANSFORMATIONS[daltonism_type][c1], \
+        DaltonismSimulator.TRANSFORMATIONS[daltonism_type][c2]
+        weight1, weight2 = 1 - (d1 / (d1 + d2)), 1 - (d2 / (d1 + d2))
+        return np.clip(t1 * weight1 + t2 * weight2, 0, 255).astype(int)
+
+    def simulate_color(rgb, daltonism_type):
+        return DaltonismSimulator.interpolate_color(np.array(rgb), daltonism_type)
+
+class SpectraAnalyzer(QWidget):
     def __init__(self):
         super().__init__()
         self.initUI()
@@ -111,17 +184,14 @@ class SpectreAbsorption(QWidget):
 
         combined_layout = QHBoxLayout()
 
-        # Daltonism checkboxes
         self.protanopia_checkbox = QCheckBox("Protanopia")
         self.deuteranopia_checkbox = QCheckBox("Deuteranopia")
         self.tritanopia_checkbox = QCheckBox("Tritanopia")
 
-        # Hide the checkboxes initially
         self.protanopia_checkbox.setVisible(False)
         self.deuteranopia_checkbox.setVisible(False)
         self.tritanopia_checkbox.setVisible(False)
 
-        # Connect the checkboxes to toggle functionality
         self.protanopia_checkbox.stateChanged.connect(lambda: self.toggle_daltonism_mode(self.protanopia_checkbox))
         self.deuteranopia_checkbox.stateChanged.connect(lambda: self.toggle_daltonism_mode(self.deuteranopia_checkbox))
         self.tritanopia_checkbox.stateChanged.connect(lambda: self.toggle_daltonism_mode(self.tritanopia_checkbox))
@@ -195,7 +265,6 @@ class SpectreAbsorption(QWidget):
         self.setLayout(main_layout)
 
     def toggle_daltonism_mode(self, checkbox):
-        """Ensure only one checkbox is checked at a time."""
         if checkbox.isChecked():
             if checkbox == self.protanopia_checkbox:
                 self.deuteranopia_checkbox.setChecked(False)
@@ -206,7 +275,7 @@ class SpectreAbsorption(QWidget):
             elif checkbox == self.tritanopia_checkbox:
                 self.protanopia_checkbox.setChecked(False)
                 self.deuteranopia_checkbox.setChecked(False)
-        # Update the plot to reflect changes
+
         self.update_plot()
 
     def read_jasco_spectrum(self, file_path):
@@ -315,6 +384,7 @@ class SpectreAbsorption(QWidget):
             self.available_emission_columns = []
             self.selected_emission_column = None
             self.emission_selector.setVisible(False)
+            self.emission_selector.clear()
 
             file_type = self.detect_file_type(file_path)
             title = "Unknown title/sample"
@@ -339,7 +409,6 @@ class SpectreAbsorption(QWidget):
                 self.copy_rgb_button.setVisible(True)
                 self.copy_hex_button.setVisible(True)
 
-                # Make checkboxes visible
                 self.protanopia_checkbox.setVisible(True)
                 self.deuteranopia_checkbox.setVisible(True)
                 self.tritanopia_checkbox.setVisible(True)
@@ -360,9 +429,13 @@ class SpectreAbsorption(QWidget):
         file_path, _ = QFileDialog.getOpenFileName(self, "Select a fluorescence spectrum file", "",
                                                    "TXT or CSV files (*.txt *.csv)", options=options)
         if file_path:
-            self.current_absorbance = None
+
+            self.emission_selector.clear()
+            self.emission_selector.setVisible(False)
             self.available_emission_columns = []
             self.selected_emission_column = None
+
+            self.current_absorbance = None
 
             file_type = self.detect_file_type(file_path)
             title = "Unknown title/sample"
@@ -385,21 +458,27 @@ class SpectreAbsorption(QWidget):
                     value_columns = [
                         col for col in pd.read_csv(file_path).columns if col.endswith("em")
                     ]
+                    self.emission_selector.clear()
+
                     if len(value_columns) >= 2:
                         self.available_emission_columns = value_columns
-                        self.emission_selector.clear()
                         self.emission_selector.addItems(value_columns)
                         self.emission_selector.setVisible(True)
                     else:
+                        self.available_emission_columns = []
+                        self.selected_emission_column = None
                         self.emission_selector.setVisible(False)
 
                 self.plot_spectrum(wavelengths, fluorescence, spectrum_type="fluorescence")
+
+                if len(self.available_emission_columns) <= 1:
+                    self.emission_selector.clear()
+                    self.emission_selector.setVisible(False)
 
                 self.copy_image_button.setVisible(True)
                 self.copy_rgb_button.setVisible(True)
                 self.copy_hex_button.setVisible(True)
 
-                # Make checkboxes visible
                 self.protanopia_checkbox.setVisible(True)
                 self.deuteranopia_checkbox.setVisible(True)
                 self.tritanopia_checkbox.setVisible(True)
@@ -518,7 +597,7 @@ class SpectreAbsorption(QWidget):
                     raise ValueError("Column 'wavelength' not found in FPbase file.")
 
                 if spectrum_type == "absorbance":
-                    # first "ab", then "ex"
+
                     value_columns = [col for col in data.columns if col.endswith("ab")]
                     if not value_columns:
                         value_columns = [col for col in data.columns if col.endswith("ex")]
@@ -542,6 +621,9 @@ class SpectreAbsorption(QWidget):
                     self.emission_selector.addItems(value_columns)
                     self.emission_selector.setVisible(True)
                 else:
+                    self.available_emission_columns = []
+                    self.selected_emission_column = None
+                    self.emission_selector.clear()
                     self.emission_selector.setVisible(False)
 
                 selected_column = (
@@ -549,7 +631,7 @@ class SpectreAbsorption(QWidget):
                 )
 
                 wavelength = data["wavelength"]
-                values = data[selected_column].fillna(0)  # Replace NaN by 0
+                values = data[selected_column].fillna(0)
 
                 protein_name = selected_column.rsplit(" ", 1)[0]
                 self.update_protein_name(file_path, file_type, protein_name, warning_message)
@@ -610,7 +692,7 @@ class SpectreAbsorption(QWidget):
                 return df['Wavelength (nm)'].values, df['Value'].values
 
             elif file_type == "SpectraSuite":
-                # Extract the username from the header
+
                 protein_name = "Unknown title/sample"
                 with open(file_path, 'r') as file:
                     for line in file:
@@ -681,9 +763,8 @@ class SpectreAbsorption(QWidget):
                 return
 
             wavelengths = data["wavelength"].values
-            values = data[self.selected_emission_column].fillna(0).values  # Remplace NaN by 0
+            values = data[self.selected_emission_column].fillna(0).values
 
-            # Check whether column is "ex" or "ab" and define the type
             if self.selected_emission_column.endswith("ex") or self.selected_emission_column.endswith("ab"):
                 self.current_spectrum_type = "absorbance"
             elif self.selected_emission_column.endswith("em"):
@@ -693,7 +774,6 @@ class SpectreAbsorption(QWidget):
 
             protein_name = self.selected_emission_column.rsplit(" ", 1)[0]
 
-            # Warning message if column is "ex" and no "ab" is found
             warning_message = ""
             if self.selected_emission_column.endswith("ex"):
                 warning_message = (
@@ -731,12 +811,12 @@ class SpectreAbsorption(QWidget):
         self.canvas.draw()
 
     def process_spectrum(self, wavelengths, absorbance):
-        # Check whether the x step is wider than 5 nm
+
         current_step = np.diff(wavelengths).mean()
         target_step = 5
 
         if current_step > target_step:
-            # Interpolate to reduce stepsize to 5 nm
+
             interpolation_function = interp1d(wavelengths, absorbance, kind='linear', fill_value="extrapolate")
             new_wavelengths = np.arange(wavelengths.min(), wavelengths.max() + target_step, target_step)
             absorbance = interpolation_function(new_wavelengths)
@@ -746,29 +826,24 @@ class SpectreAbsorption(QWidget):
         wavelengths = wavelengths[sorted_indices]
         absorbance = absorbance[sorted_indices]
 
-        # Filter out the 380-750 nm range
         mask_380_750 = (wavelengths >= 400) & (wavelengths <= 750)
         absorbance_380_750 = absorbance[mask_380_750]
 
-        # Normalize only in the 380-750 nm range
         if absorbance_380_750.size > 0:
-            absorbance_380_750 -= np.min(absorbance_380_750)  # Minimum to 0
+            absorbance_380_750 -= np.min(absorbance_380_750)
             max_absorbance = np.max(absorbance_380_750)
             if max_absorbance > 0:
-                absorbance_380_750 /= max_absorbance  # Normalize to 1
+                absorbance_380_750 /= max_absorbance
 
-        # Extend normalization to 250-750 nm
         normalized_absorbance = absorbance.copy()
         normalized_absorbance[mask_380_750] = absorbance_380_750
 
-        # Extend data with zeros where no data until 750 nm
         extended_wavelengths = np.arange(250, 751, target_step)
         extended_absorbance = np.zeros_like(extended_wavelengths, dtype=float)
         for wl, ab in zip(wavelengths, normalized_absorbance):
             if 250 <= wl <= 750:
                 extended_absorbance[int((wl - 250) / target_step)] = ab
 
-        # Bin with 5-nm steps
         bin_edges = np.arange(380, 751, target_step)
         binned_absorbance = []
         for i in range(len(bin_edges) - 1):
@@ -805,7 +880,6 @@ class SpectreAbsorption(QWidget):
 
         gs = self.canvas.figure.add_gridspec(1, 2, width_ratios=[1, 1])
 
-        # Filter data to keep only >=380 nm data
         filter_mask = wavelengths >= 380
         filtered_wavelengths = wavelengths[filter_mask]
         filtered_data = data[filter_mask]
@@ -820,19 +894,17 @@ class SpectreAbsorption(QWidget):
 
         if spectrum_type == "absorbance":
             title_left = "Absorption and transmission"
-            bar_data = 1 - filtered_data  # Transmission
-            bar_data[bar_data < 0] = 0  # Remove negative data
+            bar_data = 1 - filtered_data
+            bar_data[bar_data < 0] = 0
         elif spectrum_type == "fluorescence":
             title_left = "Emission"
             bar_data = filtered_data
         else:
             raise ValueError("Unsupported spectrum type. Use 'absorbance' or 'fluorescence'.")
 
-        # Bar colors
-        colors = [wavelength_to_rgb(wl + 2.5) for wl in filtered_wavelengths]
+        colors = [ColorUtils.wavelength_to_rgb(wl + 2.5) for wl in filtered_wavelengths]
 
-        # Bin by 5-nm steps
-        bin_edges = np.arange(380, 751, 5)  # Start bins at 380 nm
+        bin_edges = np.arange(380, 751, 5)
         binned_bar_data = []
         for i in range(len(bin_edges) - 1):
             start, end = bin_edges[i], bin_edges[i + 1]
@@ -852,7 +924,6 @@ class SpectreAbsorption(QWidget):
         ax_main.set_xlabel("Wavelength (nm)")
         ax_main.set_ylabel("Normalized values")
 
-        # Load sensitivity curves for cones
         red_sensitivity = self.load_cone_sensitivity("Red.csv", filtered_wavelengths)
         green_sensitivity = self.load_cone_sensitivity("Green.csv", filtered_wavelengths)
         blue_sensitivity = self.load_cone_sensitivity("Blue.csv", filtered_wavelengths)
@@ -861,12 +932,10 @@ class SpectreAbsorption(QWidget):
             QMessageBox.critical(self, "Error", "Cone sensitivity data could not be loaded correctly.")
             return
 
-        # Calculate contributions for each cone sensitivity
         red_contribution = np.array(binned_bar_data) * red_sensitivity
         green_contribution = np.array(binned_bar_data) * green_sensitivity
         blue_contribution = np.array(binned_bar_data) * blue_sensitivity
 
-        # Apply color weights to calculate resulting color
         if spectrum_type == "absorbance":
             red_weight, green_weight, blue_weight = 1.0, 1.0, 1.4
             resulting_color = (
@@ -875,6 +944,7 @@ class SpectreAbsorption(QWidget):
                 np.clip(np.sum(blue_contribution) * blue_weight / np.sum(blue_sensitivity), 0, 1),
             )
             resulting_color = tuple(min(c * self.absorbance_brightness, 1.0) for c in resulting_color)
+
         elif spectrum_type == "fluorescence":
             red_weight, green_weight, blue_weight = 1.3, 0.9, 1.0
             resulting_color = (
@@ -884,27 +954,35 @@ class SpectreAbsorption(QWidget):
             )
             resulting_color = tuple(min(c * self.fluorescence_brightness, 1.0) for c in resulting_color)
 
+            import colorsys
+            r, g, b = resulting_color
+            h, s, v = colorsys.rgb_to_hsv(r, g, b)
+
+            saturation_boost = 1.5
+            luminance_boost = 1.3
+
+            s = np.clip(s * saturation_boost, 0, 1)
+            v = np.clip(v * luminance_boost, 0, 1)
+
+            resulting_color = colorsys.hsv_to_rgb(h, s, v)
+
         self.resulting_color = resulting_color
 
-        # Save original color for the background of the "Color perception" graph
-        original_color = [c * 255 for c in resulting_color]  # Convert to [0-255] range
+        original_color = [c * 255 for c in resulting_color]
 
         ax_cones = self.canvas.figure.add_subplot(gs[0, 1])
 
-        # Simulate the effect of color blindness
         transformed_color = original_color
         if self.protanopia_checkbox.isChecked():
-            transformed_color = simulate_color(original_color, "protanopia")
+            transformed_color = DaltonismSimulator.simulate_color(original_color, "protanopia")
         elif self.deuteranopia_checkbox.isChecked():
-            transformed_color = simulate_color(original_color, "deuteranopia")
+            transformed_color = DaltonismSimulator.simulate_color(original_color, "deuteranopia")
         elif self.tritanopia_checkbox.isChecked():
-            transformed_color = simulate_color(original_color, "tritanopia")
-        transformed_color = [c / 255 for c in transformed_color]  # Convert back to [0, 1] range
+            transformed_color = DaltonismSimulator.simulate_color(original_color, "tritanopia")
+        transformed_color = [c / 255 for c in transformed_color]
 
-        # Set background color
         ax_cones.set_facecolor(transformed_color)
 
-        # Plot cone sensitivity curves
         ax_cones.bar(filtered_wavelengths, red_contribution, width=5, color="red", edgecolor="black", alpha=0.5)
         ax_cones.bar(filtered_wavelengths, green_contribution, width=5, color="green", edgecolor="black", alpha=0.5)
         ax_cones.bar(filtered_wavelengths, blue_contribution, width=5, color="blue", edgecolor="black", alpha=0.5)
@@ -920,7 +998,6 @@ class SpectreAbsorption(QWidget):
         ax_cones.set_xlabel("Wavelength (nm)")
         ax_cones.set_ylabel("Normalized contribution")
 
-        # Add RGB and Hex code
         rgb_255 = tuple(int(c * 255) for c in transformed_color)
         hex_color = "#{:02x}{:02x}{:02x}".format(*rgb_255)
         ax_cones.text(
@@ -941,7 +1018,6 @@ class SpectreAbsorption(QWidget):
             ax.set_axis_off()
             ax.add_patch(plt.Rectangle((0, 0), 1, 1, color=self.resulting_color))
 
-            # Temporary saving of the color figure and copy to the clipboard
             temp_image_path = "temp_color_image.png"
             fig.savefig(temp_image_path, bbox_inches='tight', pad_inches=0)
             plt.close(fig)
@@ -1005,9 +1081,8 @@ class SpectreAbsorption(QWidget):
         if self.current_spectrum_type == "fluorescence":
             self.plot_spectrum(self.current_wavelengths, self.current_fluorescence, spectrum_type="fluorescence")
 
-
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = SpectreAbsorption()
+    window = SpectraAnalyzer()
     window.show()
     sys.exit(app.exec_())
