@@ -33,7 +33,7 @@ from PyQt5.QtWidgets import (
 )
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import pandas as pd
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPixmap, QImage, QPainter, QColor
 from scipy.interpolate import interp1d
 from PyQt5.QtCore import Qt
 
@@ -557,7 +557,7 @@ class SpectraAnalyzer(QWidget):
             with open(file_path, 'r') as file:
                 header_lines = [file.readline().strip() for _ in range(10)]
 
-            if "wavelength" in header_lines[0].lower() and any(
+            if any("wavelength" in line.lower() for line in header_lines) and any(
                     "ab" in col or "em" in col for col in header_lines[0].split(",")
             ):
                 return "FPbase"
@@ -568,17 +568,30 @@ class SpectraAnalyzer(QWidget):
                 elif file_path.lower().endswith('.csv'):
                     return "JASCO CSV"
 
-            if "SpectraSuite" in header_lines[0]:
+            if any("SpectraSuite" in line for line in header_lines):
                 return "SpectraSuite"
 
             if any("Data measured with spectrometer" in line for line in header_lines):
                 return "Avantes"
 
-            for line in header_lines:
-                if any(separator in line for separator in [";", "\t", " "]):
-                    return "Generic"
+            if any(any(separator in line for separator in [";", "\t", " "]) for line in header_lines):
+                return "Generic"
 
-            return "Unknown"
+            msg_box = QMessageBox()
+            msg_box.setWindowTitle("File Type Selection")
+            msg_box.setText("Unknown file format. Please select the file type:")
+            button_fpbase = msg_box.addButton("FPbase", QMessageBox.AcceptRole)
+            button_jasco = msg_box.addButton("JASCO", QMessageBox.AcceptRole)
+            button_generic = msg_box.addButton("Generic", QMessageBox.AcceptRole)
+            msg_box.exec_()
+
+            if msg_box.clickedButton() == button_fpbase:
+                return "FPbase"
+            elif msg_box.clickedButton() == button_jasco:
+                return "JASCO"
+            else:
+                return "Generic"
+
         except Exception as e:
             print(f"Error detecting file type: {e}")
             return "Unknown"
@@ -857,14 +870,14 @@ class SpectraAnalyzer(QWidget):
         try:
             data = pd.read_csv(file_path)
             if data.empty:
-                print(f"Erreur: Le fichier {file_path} est vide.")
+                print(f"Error: The file {file_path} is empty.")
                 return np.array([])
 
             original_wavelengths = data.iloc[:, 0].values
             sensitivity = data.iloc[:, 1].values
 
             if original_wavelengths.size == 0 or sensitivity.size == 0:
-                print(f"Erreur: Le fichier {file_path} ne contient pas de données valides.")
+                print(f"Error: The file {file_path} does not contain valid data.")
                 return np.array([])
 
             interpolated_sensitivity = np.interp(wavelengths, original_wavelengths, sensitivity)
@@ -872,15 +885,14 @@ class SpectraAnalyzer(QWidget):
             return interpolated_sensitivity
 
         except Exception as e:
-            print(f"Erreur lors du chargement des fichiers de sensibilité des cônes: {e}")
+            print(f"Error loading cone sensitivity files: {e}")
             return np.array([])
 
     def plot_spectrum(self, wavelengths, data, spectrum_type="absorbance"):
         self.canvas.figure.clf()
-
         gs = self.canvas.figure.add_gridspec(1, 2, width_ratios=[1, 1])
 
-        filter_mask = wavelengths >= 380
+        filter_mask = (wavelengths >= 380) & (wavelengths <= 750)
         filtered_wavelengths = wavelengths[filter_mask]
         filtered_data = data[filter_mask]
 
@@ -888,12 +900,10 @@ class SpectraAnalyzer(QWidget):
             QMessageBox.critical(self, "Error", "No valid data in the visible range (380-750 nm).")
             return
 
-        normalized_data = (filtered_data - np.min(filtered_data)) / (
-                np.max(filtered_data) - np.min(filtered_data)
-        )
+        normalized_data = (filtered_data - np.min(filtered_data)) / (np.max(filtered_data) - np.min(filtered_data))
 
         if spectrum_type == "absorbance":
-            title_left = "Absorption and transmission"
+            title_left = "Absorption and Transmission"
             bar_data = 1 - filtered_data
             bar_data[bar_data < 0] = 0
         elif spectrum_type == "fluorescence":
@@ -909,12 +919,16 @@ class SpectraAnalyzer(QWidget):
         for i in range(len(bin_edges) - 1):
             start, end = bin_edges[i], bin_edges[i + 1]
             mask = (filtered_wavelengths >= start) & (filtered_wavelengths < end)
-            binned_bar_data.append(np.mean(bar_data[mask]) if mask.any() else 0)
+            mean_value = np.mean(bar_data[mask]) if mask.any() else 0
+            binned_bar_data.append(mean_value)
+
+        max_binned_value = np.max(binned_bar_data)
+        if max_binned_value > 0:
+            binned_bar_data = [value / max_binned_value for value in binned_bar_data]
 
         ax_main = self.canvas.figure.add_subplot(gs[0, 0])
-        ax_main.bar(
-            bin_edges[:-1], binned_bar_data, width=5, align="center", color=colors, edgecolor="black", alpha=0.6
-        )
+        ax_main.bar(bin_edges[:-1], binned_bar_data, width=5, align="center", color=colors, edgecolor="black",
+                    alpha=0.6)
         ax_main.plot(filtered_wavelengths, normalized_data, color="blue", linestyle="-", linewidth=1.5)
 
         ax_main.set_xlim(filtered_wavelengths.min(), filtered_wavelengths.max())
@@ -1013,17 +1027,16 @@ class SpectraAnalyzer(QWidget):
 
     def copy_image(self):
         if self.resulting_color:
-            fig = plt.figure(figsize=(2, 2))
-            ax = fig.add_subplot(111)
-            ax.set_axis_off()
-            ax.add_patch(plt.Rectangle((0, 0), 1, 1, color=self.resulting_color))
+            width, height = 100, 100
+            image = QImage(width, height, QImage.Format_RGB32)
+            painter = QPainter(image)
+            color = QColor(int(self.resulting_color[0] * 255), int(self.resulting_color[1] * 255),
+                           int(self.resulting_color[2] * 255))
+            painter.fillRect(0, 0, width, height, color)
+            painter.end()
 
-            temp_image_path = "temp_color_image.png"
-            fig.savefig(temp_image_path, bbox_inches='tight', pad_inches=0)
-            plt.close(fig)
             clipboard = QApplication.clipboard()
-            pixmap = QPixmap(temp_image_path)
-            clipboard.setPixmap(pixmap)
+            clipboard.setImage(image)
             QMessageBox.information(self, "Success", "Color image copied to clipboard.")
         else:
             QMessageBox.warning(self, "Error", "No color to copy. Please load a spectrum first.")
