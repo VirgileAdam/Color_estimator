@@ -959,7 +959,7 @@ class SpectraAnalyzer(QWidget):
             h, s, v = colorsys.rgb_to_hsv(r, g, b)
 
             saturation_boost = 1.5
-            luminance_boost = 1.3
+            luminance_boost = 2.0
 
             s = np.clip(s * saturation_boost, 0, 1)
             v = np.clip(v * luminance_boost, 0, 1)
