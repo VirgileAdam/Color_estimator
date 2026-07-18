@@ -1,0 +1,110 @@
+\documentclass[9pt,a4paper]{extarticle}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[a4paper,margin=13.5mm,headheight=13pt,footskip=10mm]{geometry}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{graphicx}
+\usepackage{booktabs,tabularx,array,multirow}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,shapes.geometric,fit,backgrounds}
+\usepackage[most]{tcolorbox}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{hyperref}
+\usepackage{bookmark}
+\usepackage{lastpage}
+\usepackage{etoolbox}
+
+\definecolor{PerceptaNavy}{HTML}{07111B}
+\definecolor{PerceptaPanel}{HTML}{102031}
+\definecolor{PerceptaBlue}{HTML}{3587FF}
+\definecolor{PerceptaGreen}{HTML}{39E28F}
+\definecolor{PerceptaRed}{HTML}{FF3158}
+\definecolor{PerceptaYellow}{HTML}{FFD15A}
+\definecolor{PerceptaInk}{HTML}{182635}
+\definecolor{PerceptaMuted}{HTML}{60758A}
+\definecolor{PerceptaPale}{HTML}{EDF3F8}
+
+\hypersetup{colorlinks=true,linkcolor=PerceptaBlue,urlcolor=PerceptaBlue,citecolor=PerceptaGreen,
+  pdftitle={Percepta Technical Manual},pdfauthor={Virgile Adam},
+  pdfsubject={Perceptual RGB pattern image generation},
+  pdfkeywords={Percepta, RGB, halftone, stripes, spiral, visual perception}}
+
+\titleformat{\section}{\large\bfseries\color{PerceptaInk}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalsize\bfseries\color{PerceptaInk}}{\thesubsection}{0.55em}{}
+\titleformat{\subsubsection}{\small\bfseries\color{PerceptaBlue}}{\thesubsubsection}{0.5em}{}
+\titlespacing*{\section}{0pt}{0.9em}{0.35em}
+\titlespacing*{\subsection}{0pt}{0.7em}{0.25em}
+\titlespacing*{\subsubsection}{0pt}{0.55em}{0.2em}
+\setlist{nosep,leftmargin=1.35em,topsep=0.15em}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.24em}
+\renewcommand{\arraystretch}{1.10}
+\linespread{0.96}
+\captionsetup{font=small,skip=3pt}
+\AtBeginEnvironment{table}{\small}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize\textbf{PERCEPTA}}
+\fancyhead[R]{\footnotesize Technical Manual}
+\fancyfoot[L]{\footnotesize © 2026 Virgile Adam}
+\fancyfoot[R]{\footnotesize Page \thepage\ of \pageref*{LastPage}}
+\renewcommand{\headrulewidth}{0.35pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\newtcolorbox{principlebox}[1][]{enhanced,breakable,colback=PerceptaPale,colframe=PerceptaBlue,
+  boxrule=0.65pt,arc=1.5mm,left=2.3mm,right=2.3mm,top=1.3mm,bottom=1.3mm,
+  before skip=3pt,after skip=3pt,title=Principle,fonttitle=\bfseries,#1}
+\newtcolorbox{tipbox}[1][]{enhanced,breakable,colback=PerceptaGreen!7,colframe=PerceptaGreen!65!black,
+  boxrule=0.65pt,arc=1.5mm,left=2.3mm,right=2.3mm,top=1.3mm,bottom=1.3mm,
+  before skip=3pt,after skip=3pt,title=Practical note,fonttitle=\bfseries,#1}
+\newtcolorbox{warningbox}[1][]{enhanced,breakable,colback=PerceptaRed!6,colframe=PerceptaRed!75!black,
+  boxrule=0.65pt,arc=1.5mm,left=2.3mm,right=2.3mm,top=1.3mm,bottom=1.3mm,
+  before skip=3pt,after skip=3pt,title=Limitation,fonttitle=\bfseries,#1}
+\newcommand{\control}[1]{\textbf{#1}}
+\newcommand{\vect}[1]{\boldsymbol{#1}}
+\newcommand{\clamp}{\operatorname{clamp}}
+\newcommand{\sat}{\operatorname{sat}}
+
+\begin{document}
+\begin{titlepage}
+  \pagecolor{PerceptaNavy}\color{white}\centering
+  \vspace*{8mm}
+  \includegraphics[width=0.86\textwidth]{build-assets/percepta-banner.pdf}
+  \vfill
+  {\Huge\bfseries Technical Manual\par}\vspace{3mm}
+  {\Large Theory, algorithms, controls and practical use\par}\vspace{8mm}
+  \begin{tcolorbox}[width=0.76\textwidth,colback=white!6,colframe=white!24,arc=2.5mm,boxrule=0.6pt]
+  \centering\color{white}\textbf{Percepta version 0.31.0}\par
+  Mathematical specification and illustrated reference\par July 2026
+  \end{tcolorbox}
+  \vfill
+  {\large Virgile Adam\par}\vspace{1mm}
+  {\normalsize IBS -- CNRS -- Université Grenoble Alpes\par}\vspace{5mm}
+  {\small \href{mailto:virgile.adam@ibs.fr}{virgile.adam@ibs.fr}\quad|\quad
+  \href{https://www.virgile-adam.com}{www.virgile-adam.com}\par}\vspace{6mm}
+  {\footnotesize © 2026 Virgile Adam. All rights reserved unless a separate licence states otherwise.}
+\end{titlepage}
+\nopagecolor\color{PerceptaInk}
+
+\pagenumbering{roman}\setcounter{page}{1}
+{\small\tableofcontents}
+\clearpage
+\pagenumbering{arabic}\setcounter{page}{1}
+
+\input{chapters/01-workflow}
+\input{chapters/02-model}
+\input{chapters/03-algorithms}
+\input{chapters/04-parameters}
+\input{chapters/05-perception}
+\input{chapters/06-animation-export}
+\input{chapters/07-practice-limitations}
+\input{chapters/08-references}
+\end{document}

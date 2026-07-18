@@ -1,0 +1,197 @@
+\section{Controls, defaults and adaptive scaling}
+
+\subsection{Why density has pattern-specific units}
+
+A single generic ``density'' number would be ambiguous because the renderers are constructed differently. Percepta therefore displays the physical or geometric quantity that the user actually controls.
+
+\begin{table}[H]
+\centering
+\caption{Reference density defaults at an output size of 1600 px.}
+\label{tab:defaults}
+\begin{tabularx}{\textwidth}{>{\bfseries}l >{\raggedright\arraybackslash}X c c}
+\toprule
+Pattern & Meaning of the density field & Default & Animation reference \\
+\midrule
+Vertical stripes & Number of carriers across the output & 14 & 8 $\rightarrow$ 24 \\
+Horizontal stripes & Number of carriers across the output & 14 & 8 $\rightarrow$ 24 \\
+Diagonal stripes & Number of carriers across the projected diagonal span & 18 & 10 $\rightarrow$ 28 \\
+Halftone & Centre-to-centre dot spacing & 12 px & 24 px $\rightarrow$ 7 px \\
+Hexagonal halftone & Nearest-neighbour dot spacing & 12 px & 24 px $\rightarrow$ 7 px \\
+Spiral stripes & Distance between successive turns & 19 px & 24 px $\rightarrow$ 6 px \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+For stripes, a larger number means a denser pattern. For dots and spirals, a smaller spacing means a denser pattern. This reversal is intentional: the displayed value remains a directly interpretable geometric quantity.
+
+\subsection{Strength}
+
+\control{Strength} governs how strongly channel intensity changes the geometry. In the generic modulation of Equation~\eqref{eq:amplitude}, it scales the intensity-dependent term. Visually:
+
+\begin{itemize}
+  \item low Strength produces similar widths or sizes over much of the image and weak tonal contrast;
+  \item moderate Strength separates features while retaining coloured gaps and pattern identity;
+  \item high Strength drives bright regions toward maximum coverage and dark regions toward minimum coverage.
+\end{itemize}
+
+Strength is not ordinary image contrast. Contrast modifies the source values before rendering; Strength changes how those values occupy geometric space. Their effects interact, so increasing both simultaneously can cause rapid saturation.
+
+A useful diagnostic is the fraction of samples clipped to either limit. If $a_q$ is the modulation amplitude, define
+
+\begin{equation}
+\rho_{\mathrm{clip}}=
+\frac{1}{3WH}
+\sum_{q\in\{R,G,B\}}
+\sum_{x,y}
+\mathbf{1}\!\left[a_q(x,y)\in\{0,1\}\right],
+\label{eq:clipfraction}
+\end{equation}
+
+where $\mathbf{1}[\cdot]$ is an indicator function. A very large $\rho_{\mathrm{clip}}$ means the output is using only extreme geometry and subtle source differences have been lost.
+
+\subsection{Colour separation}
+
+The separation setting is measured in output pixels. Its relative magnitude is therefore
+
+\begin{equation}
+d_{\mathrm{rel}}=\frac{d}{L},
+\label{eq:relsep}
+\end{equation}
+
+where $L$ is a characteristic output dimension. A fixed 10 px separation has twice the relative effect on an 800 px image as on a 1600 px image. Adaptive scaling can preserve appearance by scaling $d$ with output size, although a user-edited value should generally remain under explicit control.
+
+Small separation exposes coloured edges while maintaining substantial local overlap. Large separation creates a pronounced chromatic offset but increases the size of the neighbourhood required for visual averaging. It may also reveal three independent copies of high-contrast features.
+
+\begin{tipbox}
+When a result is attractive close up but fails to reconstruct, first reduce Colour separation before changing the pattern. This often restores local RGB balance without removing the chosen geometric character.
+\end{tipbox}
+
+\subsection{Source contrast}
+
+Contrast expands or compresses source values around the mid-point. It is useful when a source is flat or when the geometric renderer suppresses weak differences. It should be adjusted while watching both dark and bright areas.
+
+The contrast gain of 1.55 visible in the reference captures is intentionally assertive. It helps the example portrait survive geometric sampling, but a source already containing deep blacks and bright highlights may require a lower value.
+
+A histogram-based interpretation is helpful. If the input channel has probability density $p_C(c)$, the linear contrast transform changes the occupied range. Clamping accumulates probability at zero and one, producing flat black gaps or maximum-width geometry. The optimal value is therefore source-dependent.
+
+\subsection{Output size}
+
+\control{Output size} specifies the raster dimensions used for preview generation and export. For a square crop, $W=H=L$. Other crop modes use the selected aspect ratio while preserving the reference dimension convention used by the application.
+
+Increasing size provides:
+
+\begin{itemize}
+  \item more pixels along each edge and smoother raster geometry;
+  \item the ability to print larger at a given pixel density;
+  \item more accurate representation of thin RGB fringes;
+  \item higher memory use and longer rendering/export time.
+\end{itemize}
+
+If the output contains $WH$ pixels, a basic 8-bit RGB array requires approximately
+
+\begin{equation}
+M_{8}=3WH\ \text{bytes}.
+\label{eq:memory8}
+\end{equation}
+
+A floating-point working array with three 32-bit channels requires
+
+\begin{equation}
+M_{32}=12WH\ \text{bytes},
+\label{eq:memory32}
+\end{equation}
+
+not including source images, masks, antialiasing buffers or animation frames. At $4000\times4000$, one RGB float buffer alone occupies about 192 MB.
+
+\subsection{Adaptive defaults}
+
+The agreed reference size is
+
+\begin{equation}
+L_0=1600\ \text{px}.
+\end{equation}
+
+To preserve approximately the same apparent geometry when the output dimension changes to $L$, quantities expressed as \emph{counts} scale upward with size, whereas quantities expressed as \emph{pixel spacing} also scale in pixels so that their normalised spacing remains constant.
+
+For a reference stripe count $N_0$, an adaptive count can be defined as
+
+\begin{equation}
+N(L)=\max\!\left(1,\operatorname{round}\!\left[N_0\frac{L}{L_0}\right]\right).
+\label{eq:adaptivecount}
+\end{equation}
+
+For a reference spacing $P_0$,
+
+\begin{equation}
+P(L)=P_0\frac{L}{L_0}.
+\label{eq:adaptivespacing}
+\end{equation}
+
+The same scaling applies to default RGB separation and minimum feature dimensions when the goal is scale invariance.
+
+For example, a 12 px dot spacing at 1600 px corresponds to
+
+\begin{equation}
+P(3200)=12\times\frac{3200}{1600}=24\ \text{px}.
+\end{equation}
+
+Although the pixel spacing doubles, the output also doubles, so the number of dots across the image remains comparable.
+
+\subsubsection{Preserving user intent}
+
+Automatic defaults should update when the user changes output size only while the relevant field remains in an automatic state. Once the user explicitly edits a field, silently overwriting it would be surprising. A robust state model uses an ``automatic/manual'' flag for each adaptive parameter:
+
+\begin{equation}
+P_{\mathrm{displayed}}=
+\begin{cases}
+P_0L/L_0,&\text{automatic state},\\
+P_{\mathrm{user}},&\text{manual state}.
+\end{cases}
+\label{eq:auto-manual}
+\end{equation}
+
+Resetting the pattern can restore automatic defaults.
+
+\subsection{Framing controls}
+
+\begin{table}[H]
+\centering
+\caption{Framing controls and their mathematical role.}
+\begin{tabularx}{\textwidth}{>{\bfseries}l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+Control & Operation & Typical use \\
+\midrule
+Crop & Selects output aspect ratio and visible source window & Square artwork, portrait, landscape or custom framing \\
+Zoom & Isotropic scale $z$ in Equation~\eqref{eq:framing} & Make the subject fill the geometric bandwidth \\
+Pan X/Y & Translation before source resampling & Place eyes, face or focal object relative to carriers \\
+Rotation & Rotation $\varphi$ around the crop centre & Straighten the image or avoid alignment with carriers \\
+Reset & Restores neutral framing & Return to a reproducible starting point \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Crop and framing are not cosmetic post-processing. They determine which source information is sampled by the pattern. A small, centred subject generally survives geometric encoding better than one occupying a minor fraction of a busy frame.
+
+\subsection{Pattern-specific controls}
+
+\subsubsection{Line smoothing}
+
+Smoothing acts along the carrier direction and suppresses abrupt changes in width. If raw widths are $w[k]$, a simple exponential smoother is
+
+\begin{equation}
+\widetilde{w}[k]=\lambda w[k]+(1-\lambda)\widetilde{w}[k-1],
+\qquad 0<\lambda\le1.
+\label{eq:expsmooth}
+\end{equation}
+
+Small $\lambda$ gives stronger smoothing. Excessive smoothing removes fine detail and can shift narrow features.
+
+\subsubsection{Halftone shape, angle and minimum size}
+
+Dot shape changes the support function used in Equation~\eqref{eq:dotmask}. Circular dots are rotationally neutral; square or polygonal shapes create stronger directional texture. Screen angle rotates the lattice. Minimum size ensures weak but nonzero channel values remain visible, though it also raises the background level and reduces dark contrast.
+
+\subsubsection{Spiral centre, direction and path smoothing}
+
+The centre changes the polar coordinate origin, direction changes $\sigma$ in Equation~\eqref{eq:archimedean}, and path smoothing filters local ribbon thickness as in Equation~\eqref{eq:pathsmooth}. Direction alone should not change the average reconstruction, but it changes the flow of visible fringes and can interact with asymmetric source structure.
+
+\clearpage

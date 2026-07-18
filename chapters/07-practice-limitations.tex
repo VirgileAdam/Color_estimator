@@ -1,0 +1,207 @@
+\section{Practical method, quality control and limitations}
+
+\subsection{Choosing a source image}
+
+Percepta can process any conventional image, but not every source produces an equally convincing illusion. The encoder has finite spatial bandwidth: details smaller than the pattern period cannot be represented reliably. Sources with a clear hierarchy therefore perform best.
+
+Favour images with:
+
+\begin{itemize}
+  \item one dominant subject occupying a substantial fraction of the frame;
+  \item recognisable silhouettes and medium-scale features;
+  \item adequate separation between subject and background;
+  \item controlled highlights and shadows;
+  \item colour variation that remains meaningful after local averaging.
+\end{itemize}
+
+Potentially difficult sources include distant crowds, foliage, text-heavy scenes, repeating fabrics, fine hair against a busy background and images whose identity depends on one-pixel-scale detail.
+
+\subsection{Pattern selection by subject}
+
+\begin{table}[H]
+\centering
+\caption{Starting pattern recommendations.}
+\begin{tabularx}{\textwidth}{>{\bfseries}l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+Subject & Recommended starting modes & Reason \\
+\midrule
+Portrait & Vertical stripes, Halftone, Spiral & Faces tolerate controlled simplification and are recognised from medium-scale features \\
+Landscape & Horizontal stripes, Hexagonal halftone & Horizons and broad tonal regions align naturally with lateral or isotropic sampling \\
+Architecture & Diagonal stripes, Hexagonal halftone & Diagonal carriers avoid simple axis coincidence; hex grids reduce directional bias \\
+Graphic logo & Vertical/Horizontal stripes, Halftone & Flat regions and strong boundaries translate clearly into coverage \\
+Highly textured image & Dense halftone or dense stripes & More samples are required to preserve local variation \\
+Abstract source & Spiral or strong Colour separation & Pattern character can take precedence over literal reconstruction \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+These are starting points rather than rules. A deliberate mismatch between subject and carrier can be aesthetically productive.
+
+\subsection{A controlled optimisation sequence}
+
+Changing several controls at once makes it difficult to identify the cause of improvement. The following one-variable sequence is recommended.
+
+\begin{enumerate}
+  \item \textbf{Lock framing.} Place the subject and do not change the crop during the first comparison.
+  \item \textbf{Compare pattern families at their defaults.} Choose the structure whose close-range appearance suits the project.
+  \item \textbf{Sweep density.} Test at least one sparse, one reference and one dense value.
+  \item \textbf{Set Strength.} Increase until important tonal regions separate, then step back if highlights merge.
+  \item \textbf{Set Source contrast.} Use the smallest increase that restores recognisability.
+  \item \textbf{Add Colour separation.} Stop before the channels become independent copies at the intended viewing distance.
+  \item \textbf{Tune pattern-specific smoothing or minimum size.}
+  \item \textbf{Test final dimensions.} Increase output size and check adaptive values.
+  \item \textbf{Proof the export.} Inspect actual PNG/TIFF/SVG/PDF output, not only the live preview.
+\end{enumerate}
+
+\subsection{Quantitative quality indicators}
+
+Perceptual judgement remains central, but several numerical indicators can help diagnose a result.
+
+\subsubsection{Low-pass reconstruction error}
+
+Let $\mathcal{L}$ be a low-pass operator approximating distant viewing. Compare the filtered output with a filtered version of the framed source:
+
+\begin{equation}
+E_{\mathrm{LP}}=
+\frac{1}{3WH}
+\sum_{x,y}
+\left\|
+\mathcal{L}[\mathbf{I}_{\mathrm{out}}](x,y)
+-
+\mathcal{L}[\mathbf{C}'](x,y)
+\right\|_2^2.
+\label{eq:lperror}
+\end{equation}
+
+A smaller value indicates better preservation at the selected integration scale. It does not measure the artistic quality of the visible pattern.
+
+\subsubsection{Structural carrier visibility}
+
+A high-pass operator $\mathcal{H}$ can estimate how strongly the geometric pattern remains visible:
+
+\begin{equation}
+V_{\mathrm{carrier}}=
+\frac{1}{3WH}
+\sum_{x,y}
+\left\|\mathcal{H}[\mathbf{I}_{\mathrm{out}}](x,y)\right\|_2^2.
+\label{eq:carriervis}
+\end{equation}
+
+Percepta's artistic objective is not to minimise $V_{\mathrm{carrier}}$. A successful result often balances low reconstruction error with enough high-frequency energy to make the construction visually compelling.
+
+\subsubsection{Gamut and clipping rate}
+
+The clipping fraction in Equation~\eqref{eq:clipfraction} can be extended to exported RGB values. Large areas at exact 0 or 1 may be intended, but unexpected clipping can reveal excessive contrast or overlapping channel geometry.
+
+\subsection{Troubleshooting guide}
+
+\begin{tabularx}{\textwidth}{>{\bfseries}p{0.23\textwidth} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+Symptom & Likely cause & Corrective action \\
+\midrule
+Source is not recognisable & Pattern too sparse; source too small in frame; weak tonal separation & Increase stripe count or reduce spacing; crop tighter; raise contrast moderately \\
+Image becomes nearly white & Excessive Strength, contrast or overlap & Lower Strength; reduce contrast; reduce minimum size; inspect bright-source clipping \\
+RGB copies are visible separately & Colour separation too large for density/viewing distance & Reduce separation; use denser geometry; increase viewing distance \\
+Dark regions contain too much colour & Minimum geometry too large or smoothing spreads bright features & Reduce minimum size; reduce smoothing; inspect source black level \\
+Thin lines flicker or break & Insufficient raster resolution or antialiasing & Increase output size; enable smoothing; export vector when appropriate \\
+Diagonal edges look jagged & Raster grid aliasing & Increase supersampling/output size; use antialiased vector paths \\
+Spiral turns collide & Turn spacing too small relative to width/separation & Increase turn spacing; lower Strength or separation \\
+Animation pauses at loop point & Duplicate terminal frame or endpoint easing & Omit duplicated endpoint; adjust loop timing; use ping-pong phase consistently \\
+Export is unexpectedly large & Dense vector geometry or many animation frames & Use lossless raster; reduce dimensions/FPS/duration; stream frames to encoder \\
+Print loses coloured gaps & Printer resolution, dot gain or scaling & Make a final-size proof; increase feature width; avoid driver resampling \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Computational complexity}
+
+For a raster output of $W\times H$ pixels, preprocessing and mask composition are generally $\mathcal{O}(WH)$. Stripe renderers can also be implemented in $\mathcal{O}(WH)$ by evaluating carrier phase per pixel or by rasterising paths whose total sampled length scales with image area at fixed density.
+
+A halftone with spacing $P$ contains approximately
+
+\begin{equation}
+N_{\mathrm{dots}}\approx\frac{WH}{P^2}
+\label{eq:dotcount}
+\end{equation}
+
+for a square grid, and
+
+\begin{equation}
+N_{\mathrm{hex}}\approx
+\frac{2WH}{\sqrt{3}P^2}
+\label{eq:hexcount}
+\end{equation}
+
+for a triangular lattice. Vector export cost grows with the number of primitives, whereas raster cost remains dominated by the output pixel count.
+
+For an Archimedean spiral extending to radius $R_{\max}$ with turn spacing $T$, the number of turns is approximately
+
+\begin{equation}
+N_{\mathrm{turns}}\approx\frac{R_{\max}}{T}.
+\end{equation}
+
+The arc length from $\theta=0$ to $\theta=\Theta$ is
+
+\begin{equation}
+\ell(\Theta)=
+\int_0^{\Theta}
+\sqrt{r(\theta)^2+\left(\frac{\mathrm{d}r}{\mathrm{d}\theta}\right)^2}
+\,\mathrm{d}\theta.
+\label{eq:spirallength}
+\end{equation}
+
+Dense spirals therefore require many path samples and can be more expensive than simple stripes.
+
+\subsection{Known limitations}
+
+\begin{warningbox}
+Percepta is an artistic perceptual encoder, not a reversible compression method. Fine detail is intentionally discarded, and the original image cannot be recovered exactly from the output.
+\end{warningbox}
+
+The principal limitations are:
+
+\begin{itemize}
+  \item \textbf{Source dependence.} Optimal settings vary with composition, contrast and scale.
+  \item \textbf{Observer dependence.} Visual acuity, colour vision and viewing conditions alter the effect.
+  \item \textbf{Device dependence.} Displays and printers differ in gamut, resolution, transfer function and scaling.
+  \item \textbf{Sampling loss.} Features smaller than the carrier period cannot be represented faithfully.
+  \item \textbf{Edge interaction.} RGB separation can create coloured ghosts around high-contrast boundaries.
+  \item \textbf{Raster/vector differences.} Antialiasing and path tessellation can cause small differences between preview and export.
+  \item \textbf{Animation cost.} High-resolution sequences multiply rendering and encoding requirements.
+\end{itemize}
+
+\subsection{Implementation and distribution}
+
+The current application is designed around a compact Python/PyQt6 project. A clean distribution can contain the executable source entry point and an assets folder, with the launcher responsible for component checks and packaged execution.
+
+The runtime requirements used by the project include Python 3.10 or newer, PyQt6, NumPy, Pillow, imageio and imageio-ffmpeg. A packaged Windows build can use PyInstaller. The startup sequence may display the Percepta splash screen, check components once per application version and store state in the user's application-data directory.
+
+Still-image export should be deterministic for a fixed source, framing state, pattern and parameter set. Reproducibility is improved by storing:
+
+\begin{itemize}
+  \item application version;
+  \item source file identity and dimensions;
+  \item crop and affine framing parameters;
+  \item pattern name and every common/pattern-specific parameter;
+  \item output dimensions and export format;
+  \item animation timing and easing when applicable.
+\end{itemize}
+
+A future preset or sidecar format could serialise these values in JSON.
+
+\subsection{Possible extensions}
+
+The existing model naturally supports several extensions without changing its core identity:
+
+\begin{itemize}
+  \item perceptual or device-calibrated coverage functions $F_q^{-1}$;
+  \item automatic density selection based on source spatial frequency;
+  \item GPU rasterisation for high-resolution animation;
+  \item batch rendering and preset comparison sheets;
+  \item objective low-pass reconstruction previews and error maps;
+  \item additional continuous paths or lattice families;
+  \item colour-management metadata and printer-specific proof modes.
+\end{itemize}
+
+These are development possibilities rather than current user features.
+
+\clearpage

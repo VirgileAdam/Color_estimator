@@ -1,0 +1,194 @@
+\section{Perceptual reconstruction}
+
+\subsection{Two simultaneous spatial scales}
+
+The defining feature of a Percepta image is that it supports two readings. At high spatial resolution, the observer resolves individual RGB elements and sees the construction. At lower spatial resolution, the same elements are integrated and their local average forms the source image.
+
+This is not a binary switch at a precise distance. Visibility changes continuously with pattern period, contrast, display or print size, viewing distance, ocular optics, retinal sampling and neural contrast sensitivity. The most interesting results often occupy an intermediate regime in which both pattern and portrait are apparent.
+
+\subsection{Low-pass approximation}
+
+A first-order model represents the combined optical and neural integration by a point-spread function $h_v(x,y)$. The perceived image is
+
+\begin{equation}
+\mathbf{I}_{\mathrm{seen}}(x,y;D)
+=
+\left(h_v(\cdot,\cdot;D)*\mathbf{I}_{\mathrm{out}}\right)(x,y),
+\label{eq:visualconv}
+\end{equation}
+
+where the dependence on viewing distance $D$ indicates that one output pixel subtends a smaller visual angle as distance increases.
+
+A Gaussian approximation is
+
+\begin{equation}
+h_v(x,y;\sigma)=
+\frac{1}{2\pi\sigma^2}
+\exp\!\left[-\frac{x^2+y^2}{2\sigma^2}\right].
+\label{eq:gaussianpsf}
+\end{equation}
+
+Its Fourier transform is also Gaussian:
+
+\begin{equation}
+H_v(f_x,f_y)=
+\exp\!\left[-2\pi^2\sigma^2(f_x^2+f_y^2)\right],
+\label{eq:gaussianmtf}
+\end{equation}
+
+which attenuates high spatial frequencies more strongly than low ones. The geometric carrier lies at relatively high frequency, while the slowly varying source envelope lies at lower frequency. Increasing distance therefore suppresses the visible carrier before it suppresses the reconstructed subject.
+
+The visual system is not exactly Gaussian and contrast sensitivity is band-pass rather than a simple monotonic low-pass function. Equation~\eqref{eq:visualconv} is nevertheless a useful explanatory and preview model.
+
+\subsection{Visual angle and cycles per degree}
+
+Let a physical pattern period be $p$ millimetres and viewing distance be $D$ millimetres. The angular period is
+
+\begin{equation}
+\theta_p=2\arctan\!\left(\frac{p}{2D}\right).
+\label{eq:angularperiod}
+\end{equation}
+
+For small angles,
+
+\begin{equation}
+\theta_p\approx\frac{p}{D}\quad\text{radians}.
+\end{equation}
+
+Converting to degrees, the corresponding spatial frequency in cycles per degree is approximately
+
+\begin{equation}
+f_{\mathrm{cpd}}
+\approx
+\frac{\pi D}{180p}.
+\label{eq:cpd}
+\end{equation}
+
+Thus, doubling viewing distance doubles the carrier frequency expressed in cycles per degree and makes it harder to resolve.
+
+For a digital display with pixel pitch $p_{\mathrm{px}}$ and a geometric period of $P$ pixels,
+
+\begin{equation}
+p=P\,p_{\mathrm{px}},
+\end{equation}
+
+so Equation~\eqref{eq:cpd} becomes
+
+\begin{equation}
+f_{\mathrm{cpd}}
+\approx
+\frac{\pi D}{180Pp_{\mathrm{px}}}.
+\label{eq:cpddisplay}
+\end{equation}
+
+For print, pixel pitch is replaced by the physical output dimension divided by the raster dimension.
+
+\subsection{Example viewing-distance calculation}
+
+Suppose a 1600 px square image is printed 240 mm wide. One output pixel corresponds to
+
+\begin{equation}
+p_{\mathrm{px}}=\frac{240}{1600}=0.15\ \text{mm}.
+\end{equation}
+
+A 12 px halftone spacing corresponds to
+
+\begin{equation}
+p=12\times0.15=1.8\ \text{mm}.
+\end{equation}
+
+At $D=1000$ mm,
+
+\begin{equation}
+f_{\mathrm{cpd}}
+\approx
+\frac{\pi\times1000}{180\times1.8}
+\approx9.7\ \text{cycles/degree}.
+\end{equation}
+
+The dots may still be visible to an observer with normal acuity, but their chromatic substructure and local size differences are substantially integrated. At two metres, the frequency doubles to approximately 19.4 cycles/degree and the pattern becomes much less individually resolvable.
+
+This calculation is illustrative rather than prescriptive. Dot diameter, RGB separation, contrast, print quality and chromatic sensitivity all affect the actual transition.
+
+\subsection{Chromatic and luminance sensitivity}
+
+Human spatial resolution is generally higher for luminance variation than for purely chromatic red--green or blue--yellow variation. Narrow coloured fringes can therefore blend at distances where the broad light--dark envelope remains visible. This property benefits Percepta: the RGB carrier can lose its separate chromatic identity while the combined luminance and colour average continues to describe the source.
+
+A standard linear approximation to relative luminance from linear RGB is
+
+\begin{equation}
+Y(x,y)=0.2126R(x,y)+0.7152G(x,y)+0.0722B(x,y).
+\label{eq:luminance}
+\end{equation}
+
+The coefficients reflect the strong photopic contribution of green and the weaker contribution of blue. Display RGB values are often gamma-encoded, so physically accurate luminance calculation requires linearisation first. If a channel value $C_s$ is in standard sRGB form, the linear value $C_\ell$ is approximately
+
+\begin{equation}
+C_\ell=
+\begin{cases}
+\dfrac{C_s}{12.92},&C_s\le0.04045,\\[3mm]
+\left(\dfrac{C_s+0.055}{1.055}\right)^{2.4},&C_s>0.04045.
+\end{cases}
+\label{eq:srgblinear}
+\end{equation}
+
+Percepta's artistic rendering can operate directly on normalised channel values, but linear-light reasoning is useful when calibrating coverage so that area averages correspond more closely to emitted or reflected light.
+
+\subsection{Coverage, gamma and apparent brightness}
+
+If a display emits linear primary intensity over a fraction $a$ of a local cell and black elsewhere, the physical mean channel intensity is proportional to $a$. On a gamma-encoded image, however, writing a value of one in covered pixels and zero elsewhere does not imply that all downstream systems preserve that linear mean. Display transfer functions, printer dot gain and image resampling can alter it.
+
+A calibrated coverage function can therefore be written
+
+\begin{equation}
+a_q=F_q^{-1}(C'_q),
+\label{eq:coveragecal}
+\end{equation}
+
+where $F_q$ is the measured relationship between geometric coverage and perceived or printed channel response. The current application emphasises direct creative control rather than device-specific calibration, but Equation~\eqref{eq:coveragecal} identifies a possible future extension.
+
+\subsection{Why density changes recognisability}
+
+Let the carrier period be $P$ pixels and a source feature have characteristic width $L_f$ pixels. The number of pattern periods sampling that feature is roughly
+
+\begin{equation}
+n_f=\frac{L_f}{P}.
+\label{eq:samplesfeature}
+\end{equation}
+
+When $n_f<1$, the feature can fall between samples or be represented by only part of one geometric element. When $n_f$ is several units or more, its variation is distributed across multiple elements and is easier to reconstruct.
+
+Increasing stripe count reduces $P$ and increases $n_f$. Decreasing dot or turn spacing has the same effect. The trade-off is that fine carriers become less visible as artwork at close range and can become vulnerable to display or printer resolution limits.
+
+\subsection{Colour separation and integration neighbourhood}
+
+If red and blue structures are separated by a distance $2d$, a visual averaging kernel must span a comparable scale before their contributions recombine. In the Gaussian model, the relative attenuation of a carrier frequency $f$ is given by Equation~\eqref{eq:gaussianmtf}. Increasing separation introduces lower-frequency chromatic differences, which require stronger blur or greater viewing distance to suppress.
+
+This explains why Colour separation and density should be adjusted together. A dense pattern with moderate separation can reconstruct at a convenient distance. A sparse pattern with large separation may require the observer to move far enough away that source detail is also lost.
+
+\subsection{A computational preview of distant viewing}
+
+A useful software preview is to downsample the output and then enlarge it for inspection. Let $\mathcal{D}_k$ be area downsampling by factor $k$ and $\mathcal{U}_k$ be display enlargement. The preview is
+
+\begin{equation}
+\mathbf{I}_{\mathrm{preview}}=
+\mathcal{U}_k\left(\mathcal{D}_k(\mathbf{I}_{\mathrm{out}})\right).
+\label{eq:downsamplepreview}
+\end{equation}
+
+Area downsampling approximates local integration. A Gaussian blur followed by downsampling better suppresses aliasing:
+
+\begin{equation}
+\mathbf{I}_{\mathrm{preview}}=
+\mathcal{U}_k\left[
+\mathcal{D}_k\left(h_{\sigma}*\mathbf{I}_{\mathrm{out}}\right)
+\right].
+\end{equation}
+
+This preview cannot reproduce an observer's exact contrast sensitivity or a print's physical behaviour, but it provides a rapid estimate of whether local RGB averages reconstruct the source.
+
+\begin{principlebox}
+The illusion is strongest when the geometric carrier is high enough in spatial frequency to be integrated at the intended viewing distance, while source features remain low enough in frequency to survive that integration.
+\end{principlebox}
+
+\clearpage

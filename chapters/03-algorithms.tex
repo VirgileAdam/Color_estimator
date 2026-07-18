@@ -1,0 +1,290 @@
+\section{Rendering algorithms}
+
+\subsection{Common carrier formulation}
+
+A renderer defines a carrier coordinate $\xi(x,y)$ and a local period $P$. The fractional phase is
+
+\begin{equation}
+\phi(x,y)=\operatorname{frac}\!\left(\frac{\xi(x,y)}{P}\right),
+\qquad 0\le\phi<1,
+\label{eq:phase}
+\end{equation}
+
+where $\operatorname{frac}(a)=a-\lfloor a\rfloor$. A centred stripe with normalised duty cycle $a_q$ is present when the periodic distance from the carrier centre is smaller than half that duty cycle:
+
+\begin{equation}
+M_q^{(0)}(x,y)=
+\begin{cases}
+1,&\left|\phi_q(x,y)-\frac{1}{2}\right|\le \frac{a_q(x,y)}{2},\\[1mm]
+0,&\text{otherwise.}
+\end{cases}
+\label{eq:stripeline}
+\end{equation}
+
+The channel phase $\phi_q$ includes Colour separation. Equation~\eqref{eq:stripeline} is a convenient mathematical description; an implementation can instead draw explicit variable-width polygons or stroked paths.
+
+\subsection{Vertical stripes}
+
+For $N$ stripes across an output of width $W$, the nominal horizontal period is
+
+\begin{equation}
+P_x=\frac{W}{N}.
+\label{eq:verticalperiod}
+\end{equation}
+
+The carrier coordinate is simply
+
+\begin{equation}
+\xi_{\mathrm{V}}(x,y)=x.
+\end{equation}
+
+Local source values are sampled at or around the stripe position. The width of channel $q$ can be expressed as
+
+\begin{equation}
+w_q(x,y)=P_x\,a_q(x,y),
+\qquad 0\le w_q\le P_x.
+\label{eq:stripewidth}
+\end{equation}
+
+The strongest variation is normally evaluated along the stripe direction so that the width can change with $y$. Smooth interpolation between successive samples avoids jagged lateral edges.
+
+\textbf{Advantages.} Vertical stripes are visually simple, computationally efficient and immediately recognisable as a deliberate construction. They often preserve faces well because eyes, mouth and broad horizontal tonal changes intersect many carriers.
+
+\textbf{Limitations.} Very narrow vertical features can align with the gaps between carriers. Increasing $N$ reduces this risk but makes the close-range pattern less bold.
+
+\subsection{Horizontal stripes}
+
+For $N$ horizontal stripes across height $H$,
+
+\begin{equation}
+P_y=\frac{H}{N},
+\qquad
+\xi_{\mathrm{H}}(x,y)=y.
+\end{equation}
+
+The same modulation is applied with $x$ and $y$ exchanged. Width changes along $x$, allowing a horizontal carrier to widen and narrow across the image.
+
+Horizontal lines are well suited to landscapes, eye lines and broad lateral structures. They can, however, interact strongly with existing horizons or scan-line textures. Rotation in the Framing tab may be used intentionally to avoid or exploit such alignment.
+
+\subsection{Diagonal stripes}
+
+Let $\alpha$ be the stripe-normal angle measured from the horizontal image axis. The rotated carrier coordinate is
+
+\begin{equation}
+\xi_{\mathrm{D}}(x,y)=x\cos\alpha+y\sin\alpha.
+\label{eq:diagonalcoordinate}
+\end{equation}
+
+The length of the output projected onto that normal is approximately
+
+\begin{equation}
+L_{\alpha}=W|\cos\alpha|+H|\sin\alpha|,
+\end{equation}
+
+so a natural period for $N$ diagonal stripes is
+
+\begin{equation}
+P_{\alpha}=\frac{L_{\alpha}}{N}.
+\label{eq:diagonalperiod}
+\end{equation}
+
+The coordinate tangent to the stripe is
+
+\begin{equation}
+\tau_{\mathrm{D}}(x,y)=-x\sin\alpha+y\cos\alpha.
+\end{equation}
+
+Sampling and smoothing are performed along $\tau_{\mathrm{D}}$. RGB separation is most coherent when applied along the local normal $(\cos\alpha,\sin\alpha)$.
+
+Diagonal carriers reduce axis alignment with conventional image edges and create a dynamic composition. Because they cross a square canvas over a longer projected distance, the default count is slightly higher than for vertical or horizontal stripes.
+
+\subsection{Square-grid halftone}
+
+A square halftone uses sample centres
+
+\begin{equation}
+\mathbf{p}_{ij}=
+\begin{bmatrix}
+x_0+iP\\[1mm]y_0+jP
+\end{bmatrix},
+\qquad i,j\in\mathbb{Z},
+\label{eq:squaregrid}
+\end{equation}
+
+where $P$ is the \control{Dot spacing}. At each centre, the renderer obtains a representative channel value $c_{q,ij}$, usually by local sampling or averaging. The maximum non-overlapping radius is $P/2$. A linear radius rule is
+
+\begin{equation}
+r_{q,ij}=r_{\min}+
+\left(\frac{P}{2}-r_{\min}\right)
+s\,[c_{q,ij}]^{\eta},
+\label{eq:radiuslinear}
+\end{equation}
+
+followed by clipping to the permitted interval.
+
+However, perceived brightness is more closely related to dot \emph{area} than radius. To make area proportional to channel intensity, use
+
+\begin{equation}
+\pi r_{q,ij}^{2}=c_{q,ij}\,A_{\max},
+\end{equation}
+
+which gives
+
+\begin{equation}
+r_{q,ij}=r_{\max}\sqrt{c_{q,ij}}.
+\label{eq:radiusarea}
+\end{equation}
+
+Strength and minimum size can then be incorporated as
+
+\begin{equation}
+r_{q,ij}=r_{\min}+
+\left(r_{\max}-r_{\min}\right)
+\sqrt{\sat\!\left(s\,c_{q,ij}\right)}.
+\label{eq:radiusfinal}
+\end{equation}
+
+The ideal circular mask is
+
+\begin{equation}
+M_{q,ij}^{(0)}(x,y)=
+\begin{cases}
+1,&\|\mathbf{x}-(\mathbf{p}_{ij}+\boldsymbol{\delta}_q)\|_2\le r_{q,ij},\\
+0,&\text{otherwise.}
+\end{cases}
+\label{eq:dotmask}
+\end{equation}
+
+The channel mask is the union of all dots. Alternative dot shapes replace the Euclidean norm with a shape-specific boundary or a scaled vector primitive.
+
+\subsubsection{Screen angle}
+
+If the halftone grid is rotated by angle $\beta$, each centre is transformed around the image centre $\mathbf{c}$:
+
+\begin{equation}
+\mathbf{p}'_{ij}=\mathbf{c}+\mathbf{R}(\beta)(\mathbf{p}_{ij}-\mathbf{c}),
+\qquad
+\mathbf{R}(\beta)=
+\begin{bmatrix}
+\cos\beta&-\sin\beta\\
+\sin\beta&\cos\beta
+\end{bmatrix}.
+\end{equation}
+
+Rotation changes the texture and reduces direct alignment with source or display axes. It also requires adequate overscan so that rotated rows cover the corners.
+
+\subsection{Hexagonal halftone}
+
+The hexagonal mode uses a triangular lattice. One convenient basis is
+
+\begin{equation}
+\mathbf{a}_1=P\begin{bmatrix}1\\0\end{bmatrix},
+\qquad
+\mathbf{a}_2=P\begin{bmatrix}\frac{1}{2}\\[1mm]\frac{\sqrt{3}}{2}\end{bmatrix}.
+\label{eq:hexbasis}
+\end{equation}
+
+Sample centres are
+
+\begin{equation}
+\mathbf{p}_{ij}=\mathbf{p}_0+i\mathbf{a}_1+j\mathbf{a}_2.
+\label{eq:hexgrid}
+\end{equation}
+
+The nearest-neighbour distance is $P$, and the area of one lattice cell is
+
+\begin{equation}
+A_{\mathrm{cell}}=
+\left|\det\begin{bmatrix}\mathbf{a}_1&\mathbf{a}_2\end{bmatrix}\right|
+=\frac{\sqrt{3}}{2}P^2.
+\label{eq:hexarea}
+\end{equation}
+
+Compared with a square grid at the same nearest-neighbour spacing, the triangular lattice provides more samples per unit area and has six symmetric neighbour directions. This produces a less axis-biased texture. Radius mapping, Colour separation and antialiasing follow the same principles as the square halftone.
+
+\subsection{Spiral stripes}
+
+Percepta's spiral renderer is based on a continuous Archimedean spiral. In polar coordinates around the selected centre $(x_c,y_c)$,
+
+\begin{equation}
+r(\theta)=r_0+\sigma b\theta,
+\label{eq:archimedean}
+\end{equation}
+
+where $r_0$ is the initial radius, $\sigma=+1$ or $-1$ controls winding direction, and $b$ determines the distance between successive turns. Since
+
+\begin{equation}
+r(\theta+2\pi)-r(\theta)=2\pi b,
+\end{equation}
+
+the requested turn spacing $T$ gives
+
+\begin{equation}
+b=\frac{T}{2\pi}.
+\label{eq:spiralb}
+\end{equation}
+
+A point on the centreline is
+
+\begin{equation}
+\mathbf{s}(\theta)=
+\begin{bmatrix}
+x_c+r(\theta)\cos\theta\\[1mm]
+y_c+r(\theta)\sin\theta
+\end{bmatrix}.
+\label{eq:spiralparam}
+\end{equation}
+
+The tangent and normal directions are obtained from
+
+\begin{equation}
+\mathbf{t}(\theta)=
+\frac{\mathrm{d}\mathbf{s}/\mathrm{d}\theta}
+{\|\mathrm{d}\mathbf{s}/\mathrm{d}\theta\|_2},
+\qquad
+\mathbf{n}(\theta)=
+\begin{bmatrix}-t_y(\theta)\\t_x(\theta)\end{bmatrix}.
+\label{eq:spiralnormal}
+\end{equation}
+
+For each channel, the source is sampled along the path and the local half-width $h_q(\theta)$ is derived from intensity. The two boundaries of the channel ribbon are
+
+\begin{equation}
+\mathbf{s}_{q,\pm}(\theta)=
+\mathbf{s}(\theta)+\boldsymbol{\delta}_q(\theta)
+\pm h_q(\theta)\mathbf{n}(\theta),
+\label{eq:spiralboundaries}
+\end{equation}
+
+with a separation vector naturally defined along the normal:
+
+\begin{equation}
+\boldsymbol{\delta}_q(\theta)=d_q\mathbf{n}(\theta).
+\end{equation}
+
+\control{Path smoothing} filters $h_q(\theta)$ before boundary construction. For a discrete sequence $h_q[k]$, a moving weighted average is
+
+\begin{equation}
+\widetilde{h}_q[k]=
+\frac{\displaystyle\sum_{m=-K}^{K}\omega_m h_q[k-m]}
+{\displaystyle\sum_{m=-K}^{K}\omega_m},
+\label{eq:pathsmooth}
+\end{equation}
+
+where $K$ is related to the smoothing setting. This prevents high-frequency source noise from producing unstable or self-intersecting edges.
+
+The centre controls are expressed as percentages of output dimensions:
+
+\begin{equation}
+x_c=\frac{p_x}{100}W,
+\qquad
+y_c=\frac{p_y}{100}H.
+\end{equation}
+
+Moving the centre changes both composition and sampling. A centred spiral gives radial symmetry; an off-centre origin creates sweeping arcs and can place the tightest turns over a chosen feature.
+
+\begin{tipbox}
+Spiral stripes are most stable when the local ribbon width remains comfortably below the turn spacing. If Strength, minimum width and Colour separation together make neighbouring turns overlap excessively, highlights flatten and the spiral loses its readable structure.
+\end{tipbox}
+
+\clearpage

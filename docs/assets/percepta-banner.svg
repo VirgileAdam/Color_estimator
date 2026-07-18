@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#08111d"/><stop offset="1" stop-color="#111d2b"/></linearGradient>
+  <linearGradient id="rgb" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#ff3158"/><stop offset=".5" stop-color="#39e28f"/><stop offset="1" stop-color="#2f84ff"/></linearGradient>
+  <filter id="glow"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect width="1200" height="320" rx="30" fill="url(#bg)"/>
+<g opacity=".22" stroke-width="5" fill="none">
+  <path d="M0 70 C150 20 240 130 390 70 S650 20 800 80 S1060 130 1200 55" stroke="#ff3158"/>
+  <path d="M0 96 C150 46 240 156 390 96 S650 46 800 106 S1060 156 1200 81" stroke="#39e28f"/>
+  <path d="M0 122 C150 72 240 182 390 122 S650 72 800 132 S1060 182 1200 107" stroke="#2f84ff"/>
+</g>
+<g transform="translate(78 64)">
+  <circle cx="77" cy="95" r="74" fill="#07101a" stroke="url(#rgb)" stroke-width="8"/>
+  <g fill="none" stroke-linecap="round" filter="url(#glow)">
+    <path d="M31 98 C43 46 110 39 122 92 C133 139 83 164 53 137 C39 125 34 113 31 98" stroke="#ff3158" stroke-width="8"/>
+    <path d="M39 101 C50 56 104 49 115 94 C124 130 86 153 59 132 C48 123 42 112 39 101" stroke="#39e28f" stroke-width="8"/>
+    <path d="M47 104 C57 66 98 59 107 96 C114 122 89 141 65 128 C56 121 50 113 47 104" stroke="#2f84ff" stroke-width="8"/>
+  </g>
+</g>
+<text x="260" y="139" fill="#f5f8fc" font-size="88" font-weight="700" letter-spacing="9" font-family="Segoe UI,Arial,sans-serif">PERCEPTA</text>
+<rect x="263" y="168" width="670" height="7" rx="3.5" fill="url(#rgb)"/>
+<text x="263" y="225" fill="#aebdce" font-size="27" font-family="Segoe UI,Arial,sans-serif">Perceptual pattern image generator</text>
+<text x="263" y="267" fill="#73879d" font-size="19" font-family="Segoe UI,Arial,sans-serif">RGB geometry • optical reconstruction • animated density</text>
+</svg>

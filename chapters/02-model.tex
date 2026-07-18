@@ -1,0 +1,189 @@
+\section{Image preparation and mathematical encoding model}
+
+\subsection{Coordinate system and framed source}
+
+Let the loaded source image be defined on pixel coordinates $(u,v)$. Percepta first constructs an output canvas of width $W$ and height $H$. A point $(x,y)$ on that canvas is mapped back to the source through crop, zoom, translation and rotation.
+
+Using homogeneous coordinates, the combined inverse mapping can be written as
+
+\begin{equation}
+\begin{bmatrix}
+u\\v\\1\end{bmatrix}
+=
+\mathbf{T}_{\mathrm{source}}
+\mathbf{R}(-\varphi)
+\mathbf{S}\!\left(\frac{1}{z}\right)
+\mathbf{T}_{\mathrm{pan}}
+\begin{bmatrix}x\\y\\1\end{bmatrix},
+\label{eq:framing}
+\end{equation}
+
+where $z$ is the zoom factor, $\varphi$ is the rotation angle, and the translation matrices include crop centring and the user-defined horizontal and vertical pan. The source value at non-integer $(u,v)$ is obtained by interpolation. Bilinear interpolation is sufficient for interactive work; higher-order resampling may be used for final export.
+
+The framed RGB image is denoted
+
+\begin{equation}
+\mathbf{C}(x,y)=
+\begin{bmatrix}
+R(x,y)\\[1mm]G(x,y)\\[1mm]B(x,y)
+\end{bmatrix},
+\qquad 0\le R,G,B\le 1.
+\end{equation}
+
+Values are normalised to the interval $[0,1]$ before rendering.
+
+\subsection{Contrast preprocessing}
+
+The \control{Source contrast} parameter changes the distance of each channel value from a mid-grey pivot. A convenient operational form is
+
+\begin{equation}
+C'_q(x,y)=\clamp\!\left[
+\frac{1}{2}+\gamma_c\left(C_q(x,y)-\frac{1}{2}\right),\,0,\,1
+\right],
+\qquad q\in\{R,G,B\},
+\label{eq:contrast}
+\end{equation}
+
+where $\gamma_c=1$ leaves contrast unchanged, $\gamma_c>1$ increases contrast and $0<\gamma_c<1$ compresses it. The function
+
+\begin{equation}
+\clamp(a,0,1)=
+\begin{cases}
+0,&a<0,\\
+a,&0\le a\le 1,\\
+1,&a>1
+\end{cases}
+\end{equation}
+
+prevents invalid channel values. An implementation can use an equivalent image-library contrast operator, but Equation~\eqref{eq:contrast} captures the intended behaviour.
+
+Contrast is applied before geometric encoding. It therefore changes the distribution of widths or radii, not merely the appearance of a completed result. High values expand the number of locations that map to minimum or maximum geometry and can remove subtle tonal information.
+
+\subsection{Channel-specific geometric coverage}
+
+For every channel $q$, Percepta creates a geometric mask
+
+\begin{equation}
+M_q(x,y)\in[0,1].
+\end{equation}
+
+A value of zero means that channel contributes no light at $(x,y)$; a value of one means full channel coverage. Antialiased edges take intermediate values.
+
+The source channel is converted into a modulation amplitude by
+
+\begin{equation}
+a_q(x,y)=\sat\!\left(a_{\min}+s\,C'_q(x,y)\right),
+\label{eq:amplitude}
+\end{equation}
+
+where $s$ is related to \control{Strength}, $a_{\min}$ is the renderer's minimum visible geometry and
+
+\begin{equation}
+\sat(a)=\clamp(a,0,1).
+\end{equation}
+
+In practice, the geometry may use a nonlinear response
+
+\begin{equation}
+a_q(x,y)=\sat\!\left(a_{\min}+s\,[C'_q(x,y)]^{\eta}\right),
+\label{eq:gamma}
+\end{equation}
+
+where $\eta$ controls how quickly small channel values become visible. The current controls expose Strength rather than $\eta$ directly; the equation is useful when comparing renderer implementations or future calibration modes.
+
+\subsection{RGB displacement}
+
+Colour separation is produced by evaluating or placing the channel structures at slightly different positions. Let the separation magnitude in output pixels be $d$. A symmetric three-channel arrangement can be represented by displacement vectors
+
+\begin{equation}
+\boldsymbol{\delta}_R=d\begin{bmatrix}-1\\0\end{bmatrix},\qquad
+\boldsymbol{\delta}_G=d\begin{bmatrix}0\\0\end{bmatrix},\qquad
+\boldsymbol{\delta}_B=d\begin{bmatrix}1\\0\end{bmatrix},
+\label{eq:rgbshift}
+\end{equation}
+
+or by the same vectors rotated into the local normal direction of a stripe or spiral. The renderer then uses
+
+\begin{equation}
+\widetilde{M}_q(x,y)=M_q\!\left(x-\delta_{q,x},y-\delta_{q,y}\right).
+\end{equation}
+
+The exact orientation can be pattern-dependent. What matters perceptually is that channel supports no longer coincide perfectly. Where two channels overlap, additive secondary colours appear: red plus green gives yellow, green plus blue gives cyan, and red plus blue gives magenta.
+
+\subsection{Additive composition}
+
+The final RGB output is the vector image
+
+\begin{equation}
+\mathbf{I}_{\mathrm{out}}(x,y)=
+\begin{bmatrix}
+\widetilde{M}_R(x,y)\\[1mm]
+\widetilde{M}_G(x,y)\\[1mm]
+\widetilde{M}_B(x,y)
+\end{bmatrix}.
+\label{eq:additive}
+\end{equation}
+
+On a black background, each mask directly drives the corresponding display primary. If an opacity or background term is introduced, a more general compositing expression is
+
+\begin{equation}
+\mathbf{I}_{\mathrm{out}}=
+\boldsymbol{\alpha}\odot\mathbf{M}
++\left(\mathbf{1}-\boldsymbol{\alpha}\right)\odot\mathbf{I}_{\mathrm{bg}},
+\end{equation}
+
+where $\odot$ denotes element-wise multiplication. The standard Percepta appearance uses a dark background because it maximises the visual distinction between individual RGB elements while preserving additive mixing.
+
+\subsection{Area-average preservation}
+
+Consider a local pattern cell $\Omega$ whose dimensions are small compared with the scale of source variation. The mean output colour is
+
+\begin{equation}
+\overline{\mathbf{I}}_{\Omega}
+=
+\frac{1}{|\Omega|}
+\iint_{\Omega}
+\mathbf{I}_{\mathrm{out}}(x,y)\,\mathrm{d}x\,\mathrm{d}y.
+\label{eq:localmean}
+\end{equation}
+
+A well-calibrated renderer chooses stripe widths or dot areas so that
+
+\begin{equation}
+\overline{\mathbf{I}}_{\Omega}
+\approx
+\begin{bmatrix}
+\overline{R}_{\Omega}\\[1mm]
+\overline{G}_{\Omega}\\[1mm]
+\overline{B}_{\Omega}
+\end{bmatrix}.
+\label{eq:preserve}
+\end{equation}
+
+This is the central conservation principle. The pattern can differ radically from the source at individual pixels while preserving average channel energy over a neighbourhood.
+
+\begin{warningbox}
+Exact equality in Equation~\eqref{eq:preserve} is not guaranteed everywhere. Minimum widths, clipping, antialiasing, finite spacing, RGB displacement and source variation within a cell all introduce error. The renderer seeks a convincing perceptual approximation rather than lossless coding.
+\end{warningbox}
+
+\subsection{Sampling and antialiasing}
+
+Every ideal geometric mask contains sharp boundaries. Raster output samples those boundaries on a finite pixel grid. Without antialiasing, an ideal binary mask
+
+\begin{equation}
+M_q^{(0)}(x,y)\in\{0,1\}
+\end{equation}
+
+would produce stair-stepping and temporal flicker. A smoothed mask can be modelled as
+
+\begin{equation}
+M_q(x,y)=
+\left(h_{\mathrm{aa}}*M_q^{(0)}\right)(x,y),
+\label{eq:aa}
+\end{equation}
+
+where $h_{\mathrm{aa}}$ is a compact reconstruction kernel and $*$ denotes convolution. Supersampling followed by area downsampling is an equivalent practical method.
+
+Smoothing should remove pixel-grid artefacts without blurring neighbouring RGB structures together. This trade-off is especially important for thin diagonal lines and dense spiral turns.
+
+\clearpage
