@@ -1,137 +1,48 @@
-name: Build final compact Percepta documentation
+name: Deliver Percepta documentation artifact
 
 on:
-  push:
-    branches: ["tmp-percepta-docs-build5"]
+  pull_request:
+    branches: ["tmp-percepta-docs-prbase"]
+    types: [opened, synchronize, reopened, closed]
 
 permissions:
   contents: write
 
-env:
-  PACKAGE_NAME: Percepta_Documentation_Package
-
 jobs:
-  build:
+  deliver:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build final compact manual and package
-        shell: bash
+      - name: Verify deliverables
         run: |
-          set +e
-          exec > >(tee build-transcript.txt) 2>&1
-          sudo apt-get update
-          update_rc=$?
-          sudo apt-get install -y --no-install-recommends \
-            texlive-latex-base texlive-latex-recommended texlive-latex-extra \
-            texlive-fonts-recommended lmodern latexmk librsvg2-bin poppler-utils zip
-          install_rc=$?
-
-          mkdir -p build-assets
-          rsvg-convert -f pdf -o build-assets/percepta-banner.pdf docs/assets/percepta-banner.svg; svg1=$?
-          rsvg-convert -f pdf -o build-assets/pattern-gallery.pdf docs/assets/pattern-gallery.svg; svg2=$?
-          rsvg-convert -f pdf -o build-assets/interface-overview.pdf docs/assets/interface-overview.svg; svg3=$?
-          rsvg-convert -f pdf -o build-assets/density-animation.pdf docs/assets/density-animation.svg; svg4=$?
-
-          python3 - <<'PY'
-          from pathlib import Path
-          for path in Path('chapters').glob('*.tex'):
-              text = path.read_text(encoding='utf-8').replace(r'\clearpage', '')
-              path.write_text(text, encoding='utf-8')
-          path = Path('chapters/02-model.tex')
-          text = path.read_text(encoding='utf-8').replace(r'\nu\\v', r'u\\v')
-          path.write_text(text, encoding='utf-8')
-          p = Path('chapters/01-workflow.tex')
-          text = p.read_text(encoding='utf-8')
-          text = text.replace(r'width=\textwidth]{build-assets/interface-overview.pdf}', r'width=0.92\textwidth]{build-assets/interface-overview.pdf}')
-          text = text.replace(r'width=\textwidth]{build-assets/pattern-gallery.pdf}', r'width=0.92\textwidth]{build-assets/pattern-gallery.pdf}')
-          p.write_text(text, encoding='utf-8')
-          p = Path('chapters/06-animation-export.tex')
-          text = p.read_text(encoding='utf-8').replace(r'width=\textwidth]{build-assets/density-animation.pdf}', r'width=0.92\textwidth]{build-assets/density-animation.pdf}')
-          p.write_text(text, encoding='utf-8')
-          p = Path('manual.tex')
-          text = p.read_text(encoding='utf-8')
-          text = text.replace(r'\usepackage{etoolbox}', r'\usepackage{etoolbox}' + '\n' + r'\usepackage{multicol}')
-          text = text.replace(r'\begin{document}', r'\begin{document}' + '\n' + r'\pagenumbering{gobble}')
-          text = text.replace(r'{\small\tableofcontents}', r'\setcounter{tocdepth}{2}' + '\n' + r'{\footnotesize\tableofcontents}')
-          p.write_text(text, encoding='utf-8')
-          p = Path('README.md')
-          text = p.read_text(encoding='utf-8')
-          text = text.replace('The accompanying **Percepta Technical Manual** develops', 'The accompanying [**Percepta Technical Manual**](Percepta_Technical_Manual.pdf) develops')
-          p.write_text(text, encoding='utf-8')
-          PY
-          correction_rc=$?
-
-          latexmk -pdf -interaction=nonstopmode -halt-on-error manual.tex
-          latex_rc=$?
-          pages=0
-          package_rc=99
-          if [ "$latex_rc" -eq 0 ] && [ -f manual.pdf ]; then
-            cp manual.pdf Percepta_Technical_Manual.pdf
-            pages=$(pdfinfo Percepta_Technical_Manual.pdf | awk '/^Pages:/ {print $2}')
-            pdftotext Percepta_Technical_Manual.pdf manual-check.txt
-            rm -rf release
-            mkdir -p release/docs/assets release/source/chapters
-            cp README.md release/README.md
-            cp Percepta_Technical_Manual.pdf release/Percepta_Technical_Manual.pdf
-            cp docs/assets/*.svg release/docs/assets/
-            cp manual.tex release/source/manual.tex
-            cp chapters/*.tex release/source/chapters/
-            cat > release/CONTENTS.txt <<'EOF'
-          Percepta Documentation Package
-          ==============================
-
-          README.md
-            Illustrated GitHub overview and user-facing quick guide.
-
-          Percepta_Technical_Manual.pdf
-            Complete illustrated technical manual with mathematical equations.
-
-          docs/assets/
-            Reusable SVG illustrations referenced by README.md.
-
-          source/
-            LaTeX source of the technical manual for future updates.
-
-          Prepared for Percepta version 0.31.0.
-          © 2026 Virgile Adam.
-          EOF
-            (cd release && zip -r ../Percepta_Documentation_Package.zip .)
-            package_rc=$?
-          fi
-
-          cat > STATUS.txt <<EOF
-          PERCEPTA FINAL COMPACT DOCUMENTATION BUILD STATUS
-          =================================================
-          UTC: $(date -u)
-          apt update: $update_rc
-          apt install: $install_rc
-          svg conversions: $svg1 $svg2 $svg3 $svg4
-          text corrections: $correction_rc
-          latex build: $latex_rc
-          package: $package_rc
-          pages: $pages
-          EOF
-          echo "" >> STATUS.txt
-          if [ -f manual.log ]; then tail -n 100 manual.log >> STATUS.txt; fi
-
-          git config user.name "Percepta documentation builder"
-          git config user.email "actions@users.noreply.github.com"
-          git add -A
-          git commit -m "Publish final compact Percepta documentation [skip ci]"
-          git push origin HEAD:tmp-percepta-docs-build5
-          sleep 1800
-          git push origin --delete tmp-percepta-docs-build5 || true
-          exit 0
-
-      - name: Upload package artifact
-        if: always()
+          test -s README.md
+          test -s Percepta_Technical_Manual.pdf
+          test -s Percepta_Documentation_Package.zip
+          grep -q '^pages: 18$' STATUS.txt
+      - name: Upload final documentation
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.PACKAGE_NAME }}
+          name: Percepta_Documentation_Final
           path: |
             README.md
             Percepta_Technical_Manual.pdf
             Percepta_Documentation_Package.zip
             STATUS.txt
-          if-no-files-found: warn
+          if-no-files-found: error
+          retention-days: 1
+
+  cleanup:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove temporary branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git init cleanup
+          cd cleanup
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push origin --delete tmp-percepta-docs-prhead || true
+          sleep 30
+          git push origin --delete tmp-percepta-docs-prbase || true
