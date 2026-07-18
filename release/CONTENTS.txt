@@ -1,0 +1,17 @@
+Percepta Documentation Package
+==============================
+
+README.md
+  Illustrated GitHub overview and user-facing quick guide.
+
+Percepta_Technical_Manual.pdf
+  Complete illustrated technical manual with mathematical equations.
+
+docs/assets/
+  Reusable SVG illustrations referenced by README.md.
+
+source/
+  LaTeX source of the technical manual for future updates.
+
+Prepared for Percepta version 0.31.0.
+© 2026 Virgile Adam.

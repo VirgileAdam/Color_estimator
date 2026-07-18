@@ -1,0 +1,81 @@
+\contentsline {section}{\numberline {1}Purpose, scope and operating workflow}{1}{section.1}%
+\contentsline {subsection}{\numberline {1.1}What Percepta produces}{1}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Document scope}{1}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.3}Main interface}{1}{subsection.1.3}%
+\contentsline {subsubsection}{\numberline {1.3.1}Input and rendering panel}{1}{subsubsection.1.3.1}%
+\contentsline {subsubsection}{\numberline {1.3.2}Source and generated previews}{2}{subsubsection.1.3.2}%
+\contentsline {subsection}{\numberline {1.4}Recommended operating sequence}{2}{subsection.1.4}%
+\contentsline {subsection}{\numberline {1.5}Pattern overview}{2}{subsection.1.5}%
+\contentsline {section}{\numberline {2}Image preparation and mathematical encoding model}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Coordinate system and framed source}{3}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Contrast preprocessing}{3}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Channel-specific geometric coverage}{3}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}RGB displacement}{3}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}Additive composition}{4}{subsection.2.5}%
+\contentsline {subsection}{\numberline {2.6}Area-average preservation}{4}{subsection.2.6}%
+\contentsline {subsection}{\numberline {2.7}Sampling and antialiasing}{4}{subsection.2.7}%
+\contentsline {section}{\numberline {3}Rendering algorithms}{4}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Common carrier formulation}{4}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Vertical stripes}{5}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Horizontal stripes}{5}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Diagonal stripes}{5}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}Square-grid halftone}{5}{subsection.3.5}%
+\contentsline {subsubsection}{\numberline {3.5.1}Screen angle}{6}{subsubsection.3.5.1}%
+\contentsline {subsection}{\numberline {3.6}Hexagonal halftone}{6}{subsection.3.6}%
+\contentsline {subsection}{\numberline {3.7}Spiral stripes}{6}{subsection.3.7}%
+\contentsline {section}{\numberline {4}Controls, defaults and adaptive scaling}{7}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Why density has pattern-specific units}{7}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Strength}{7}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Colour separation}{7}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Source contrast}{8}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}Output size}{8}{subsection.4.5}%
+\contentsline {subsection}{\numberline {4.6}Adaptive defaults}{8}{subsection.4.6}%
+\contentsline {subsubsection}{\numberline {4.6.1}Preserving user intent}{8}{subsubsection.4.6.1}%
+\contentsline {subsection}{\numberline {4.7}Framing controls}{9}{subsection.4.7}%
+\contentsline {subsection}{\numberline {4.8}Pattern-specific controls}{9}{subsection.4.8}%
+\contentsline {subsubsection}{\numberline {4.8.1}Line smoothing}{9}{subsubsection.4.8.1}%
+\contentsline {subsubsection}{\numberline {4.8.2}Halftone shape, angle and minimum size}{9}{subsubsection.4.8.2}%
+\contentsline {subsubsection}{\numberline {4.8.3}Spiral centre, direction and path smoothing}{9}{subsubsection.4.8.3}%
+\contentsline {section}{\numberline {5}Perceptual reconstruction}{9}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Two simultaneous spatial scales}{9}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Low-pass approximation}{9}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Visual angle and cycles per degree}{9}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}Example viewing-distance calculation}{10}{subsection.5.4}%
+\contentsline {subsection}{\numberline {5.5}Chromatic and luminance sensitivity}{10}{subsection.5.5}%
+\contentsline {subsection}{\numberline {5.6}Coverage, gamma and apparent brightness}{10}{subsection.5.6}%
+\contentsline {subsection}{\numberline {5.7}Why density changes recognisability}{11}{subsection.5.7}%
+\contentsline {subsection}{\numberline {5.8}Colour separation and integration neighbourhood}{11}{subsection.5.8}%
+\contentsline {subsection}{\numberline {5.9}A computational preview of distant viewing}{11}{subsection.5.9}%
+\contentsline {section}{\numberline {6}Density animation and export}{11}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Animation purpose}{11}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Time normalisation}{11}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}Parameter interpolation}{12}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}Ping-pong phase}{12}{subsection.6.4}%
+\contentsline {subsection}{\numberline {6.5}Frame rate and frame count}{12}{subsection.6.5}%
+\contentsline {subsection}{\numberline {6.6}Recommended animation ranges}{12}{subsection.6.6}%
+\contentsline {subsection}{\numberline {6.7}Preview, playback and saving}{13}{subsection.6.7}%
+\contentsline {subsection}{\numberline {6.8}Still-image export formats}{13}{subsection.6.8}%
+\contentsline {subsubsection}{\numberline {6.8.1}PNG}{13}{subsubsection.6.8.1}%
+\contentsline {subsubsection}{\numberline {6.8.2}TIFF}{13}{subsubsection.6.8.2}%
+\contentsline {subsubsection}{\numberline {6.8.3}SVG}{13}{subsubsection.6.8.3}%
+\contentsline {subsubsection}{\numberline {6.8.4}PDF}{13}{subsubsection.6.8.4}%
+\contentsline {subsection}{\numberline {6.9}Physical print size and raster resolution}{13}{subsection.6.9}%
+\contentsline {subsection}{\numberline {6.10}Colour management and printing}{13}{subsection.6.10}%
+\contentsline {section}{\numberline {7}Practical method, quality control and limitations}{13}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Choosing a source image}{13}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Pattern selection by subject}{14}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}A controlled optimisation sequence}{14}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.4}Quantitative quality indicators}{14}{subsection.7.4}%
+\contentsline {subsubsection}{\numberline {7.4.1}Low-pass reconstruction error}{14}{subsubsection.7.4.1}%
+\contentsline {subsubsection}{\numberline {7.4.2}Structural carrier visibility}{14}{subsubsection.7.4.2}%
+\contentsline {subsubsection}{\numberline {7.4.3}Gamut and clipping rate}{14}{subsubsection.7.4.3}%
+\contentsline {subsection}{\numberline {7.5}Troubleshooting guide}{15}{subsection.7.5}%
+\contentsline {subsection}{\numberline {7.6}Computational complexity}{15}{subsection.7.6}%
+\contentsline {subsection}{\numberline {7.7}Known limitations}{15}{subsection.7.7}%
+\contentsline {subsection}{\numberline {7.8}Implementation and distribution}{15}{subsection.7.8}%
+\contentsline {subsection}{\numberline {7.9}Possible extensions}{16}{subsection.7.9}%
+\contentsline {section}{\numberline {8}Glossary, notation and references}{16}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Compact glossary}{16}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}Further reading}{16}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}Principal notation}{16}{subsection.8.3}%
+\contentsline {subsection}{\numberline {8.4}Document status}{16}{subsection.8.4}%

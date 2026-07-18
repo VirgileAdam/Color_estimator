@@ -1,0 +1,2149 @@
+P E R C E P TA
+Perceptual pattern image generator
+RGB geometry • optical reconstruction • animated density
+
+Technical Manual
+Theory, algorithms, controls and practical use
+
+Percepta version 0.31.0
+Mathematical specification and illustrated reference
+July 2026
+
+Virgile Adam
+IBS – CNRS – Université Grenoble Alpes
+virgile.adam@ibs.fr
+
+|
+
+www.virgile-adam.com
+
+© 2026 Virgile Adam. All rights reserved unless a separate licence states otherwise.
+
+PERCEPTA
+
+Technical Manual
+
+Contents
+1
+
+Purpose, scope and operating workflow
+1.1 What Percepta produces . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+1.2 Document scope . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+1.3 Main interface . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+1.4 Recommended operating sequence . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+1.5 Pattern overview . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+1
+1
+1
+1
+2
+2
+
+2
+
+Image preparation and mathematical encoding model
+2.1 Coordinate system and framed source . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+2.2 Contrast preprocessing . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+2.3 Channel-specific geometric coverage . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+2.4 RGB displacement . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+2.5 Additive composition . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+2.6 Area-average preservation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+2.7 Sampling and antialiasing . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+3
+3
+3
+3
+3
+4
+4
+4
+
+3
+
+Rendering algorithms
+3.1 Common carrier formulation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+3.2 Vertical stripes . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+3.3 Horizontal stripes . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+3.4 Diagonal stripes . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+3.5 Square-grid halftone . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+3.6 Hexagonal halftone . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+3.7 Spiral stripes . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+4
+4
+5
+5
+5
+5
+6
+6
+
+4
+
+Controls, defaults and adaptive scaling
+4.1 Why density has pattern-specific units . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.2 Strength . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.3 Colour separation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.4 Source contrast . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.5 Output size . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.6 Adaptive defaults . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.7 Framing controls . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.8 Pattern-specific controls . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+7
+7
+7
+7
+8
+8
+8
+9
+9
+
+5
+
+Perceptual reconstruction
+5.1 Two simultaneous spatial scales . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.2 Low-pass approximation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.3 Visual angle and cycles per degree . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.4 Example viewing-distance calculation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.5 Chromatic and luminance sensitivity . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.6 Coverage, gamma and apparent brightness . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.7 Why density changes recognisability . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.8 Colour separation and integration neighbourhood . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.9 A computational preview of distant viewing . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+9
+9
+9
+9
+10
+10
+10
+11
+11
+11
+
+6
+
+Density animation and export
+6.1 Animation purpose . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+6.2 Time normalisation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+6.3 Parameter interpolation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+6.4 Ping-pong phase . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+6.5 Frame rate and frame count . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+6.6 Recommended animation ranges . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+6.7 Preview, playback and saving . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+6.8 Still-image export formats . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+6.9 Physical print size and raster resolution . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+6.10 Colour management and printing . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+11
+11
+11
+12
+12
+12
+12
+13
+13
+13
+13
+
+7
+
+Practical method, quality control and limitations
+7.1 Choosing a source image . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+7.2 Pattern selection by subject . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+7.3 A controlled optimisation sequence . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+7.4 Quantitative quality indicators . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+7.5 Troubleshooting guide . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+7.6 Computational complexity . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+7.7 Known limitations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+7.8 Implementation and distribution . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+7.9 Possible extensions . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+13
+13
+14
+14
+14
+15
+15
+15
+15
+16
+
+8
+
+Glossary, notation and references
+8.1 Compact glossary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+8.2 Further reading . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+8.3 Principal notation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+8.4 Document status . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+16
+16
+16
+16
+16
+
+© 2026 Virgile Adam
+
+Page i of 16
+
+PERCEPTA
+
+Technical Manual
+
+1 Purpose, scope and operating workflow
+1.1 What Percepta produces
+Percepta is a desktop application for transforming an ordinary raster image into a structured RGB pattern. The output is
+deliberately dual in character. At close range, the observer sees a geometric construction: coloured stripes, dots or a spiral. At a
+larger viewing distance, or after reducing the image on screen, the same construction is spatially averaged and the source image
+becomes legible again.
+The software therefore does not aim to imitate the source at every pixel. Instead, it preserves local red, green and blue contributions
+through the coverage of three independently rendered structures. In a bright red region, the red structure occupies a larger fraction
+of the local pattern cell. In a neutral bright region, red, green and blue structures overlap strongly and the area tends towards
+white. In a dark region, little geometry is drawn and the background remains visible.
+The intended uses include:
+• creating optical-illusion portraits and graphic artwork;
+• producing animated transitions between obvious geometry and image reconstruction;
+• exploring spatial vision, colour mixing and halftoning principles;
+• preparing high-resolution raster or vector compositions for screen and print.
+Principle
+Percepta converts intensity into geometry. It does not merely recolour pixels or overlay a fixed screen. The source controls
+local stripe width, dot radius or spiral thickness separately in the red, green and blue channels.
+1.2 Document scope
+This manual provides a complete operational and mathematical description of the current application. It explains the user interface,
+preprocessing, rendering families, parameter semantics, adaptive defaults, density animation, export and the perceptual basis of
+the illusion.
+The equations describe the rendering model at the level needed to understand and reproduce its behaviour. A concrete
+implementation may use equivalent discrete formulations, cached intermediate images, vector paths or antialiased raster primitives.
+Consequently, two valid implementations can differ by subpixel edge placement while obeying the same model.
+1.3 Main interface
+Figure 1 reconstructs the application layout from the supplied interface captures. The exact dimensions adapt to the display, but
+the functional organisation remains the same.
+
+Percepta
+
+File Help
+
+Image
+
+1
+
+2
+
+Source image
+
+Generated pattern
+
+3
+
+Open image…
+
+Rendering
+Pattern
+
+Vertical stripes
+
+Number of stripes
+
+14
+
+Strength
+
+0.80
+
+Colour separation
+
+10 px
+
+Source contrast
+
+1.55
+
+Output size
+
+1600 px
+
+Generate
+
+Framing
+
+Density animation
+
+Export
+
+Pattern options
+
+8 → 24
+
+Duration 4.00 s
+
+Framed source preview
+
+FPS 12
+
+Linear
+
+Pattern: Vertical stripes — 1600 × 1600 px
+
+Ping-pong
+
+Preview
+
+Play
+
+Pause
+
+Save animation 4
+
+Figure 1: Percepta interface: (1) input and rendering controls, (2) framed source preview, (3) generated pattern preview, and (4) density
+animation controls.
+1.3.1 Input and rendering panel
+
+The left panel contains the global workflow:
+1. Open image... loads the source.
+2. Pattern selects one of the six renderers.
+3. The density field changes its label and unit according to the renderer.
+4. Strength, Colour separation, Source contrast and Output size set common behaviour.
+5. Generate refreshes the output.
+
+© 2026 Virgile Adam
+
+Page 1 of 16
+
+PERCEPTA
+
+Technical Manual
+
+6. Export writes the current result to a supported format.
+The two lower tabs separate geometric framing from options that apply only to the chosen pattern. This avoids displaying irrelevant
+controls and makes it clear which settings are global and which are renderer-specific.
+1.3.2 Source and generated previews
+
+The source preview is not necessarily the original file as loaded. It represents the result of crop, zoom, pan and rotation. This is
+the exact composition passed to the encoder. The generated preview shows the geometric output and reports the active pattern
+and output dimensions.
+A useful evaluation habit is to inspect the generated result in three ways:
+• at full size, to judge edge quality and the visual character of the geometry;
+• at an intermediate zoom, to see whether pattern and image coexist;
+• as a small thumbnail, to judge reconstruction.
+1.4 Recommended operating sequence
+The following sequence minimises unnecessary recalculation and makes parameter interactions easier to understand.
+Step 1. Choose a suitable source. Begin with an image having a clear subject, useful tonal range and limited clutter.
+Step 2. Set the output aspect ratio. Select the crop before fine positioning.
+Step 3. Frame the subject. Use zoom, pan and rotation until the source preview is satisfactory.
+Step 4. Choose the pattern family. Select a line, halftone or spiral structure according to the intended visual character.
+Step 5. Generate at reference settings. At 1600 px, use the pattern defaults in Table 1 before making large changes.
+Step 6. Adjust density first. Density determines the fundamental spatial scale and has the largest effect on recognisability.
+Step 7. Adjust Strength and contrast. Use them to recover tonal separation without clipping.
+Step 8. Add colour separation carefully. Coloured fringes are attractive, but excessive displacement breaks local RGB averaging.
+Step 9. Test at distance. Zoom out or physically step back.
+Step 10. Increase output size for export. Adaptive defaults preserve approximate apparent density, but the final result should still
+be checked.
+Practical note
+For a first portrait, use Vertical stripes at 14 stripes, Strength 0.80, Colour separation 10 px, Source contrast 1.55 and Output
+size 1600 px. Then compare the same framing with Halftone at 12 px and Spiral stripes at 19 px.
+1.5 Pattern overview
+
+Six geometric encoders — one perceptual principle
+
+Vertical stripes
+
+Horizontal stripes
+
+Diagonal stripes
+
+Density = number of stripes
+
+Density = number of stripes
+
+Density = number of stripes
+
+Halftone
+
+Hexagonal halftone
+
+Spiral stripes
+
+Density = dot spacing
+
+Density = dot spacing
+
+Density = turn spacing
+
+Figure 2: The six renderer families. The illustrations reproduce the visual logic of the supplied Percepta examples rather than a specific source
+photograph.
+
+The line renderers use one-dimensional carriers whose local visible width changes with image content. The two halftone renderers
+sample on two-dimensional lattices and encode intensity as dot size. The spiral renderer follows a single continuous polar path and
+varies its local thickness.
+These families share the same RGB decomposition and additive composition, so the controls remain conceptually consistent even
+though their density units differ.
+
+© 2026 Virgile Adam
+
+Page 2 of 16
+
+PERCEPTA
+
+Technical Manual
+
+2 Image preparation and mathematical encoding model
+2.1 Coordinate system and framed source
+Let the loaded source image be defined on pixel coordinates (u, v). Percepta first constructs an output canvas of width W and
+height H. A point (x, y) on that canvas is mapped back to the source through crop, zoom, translation and rotation.
+Using homogeneous coordinates, the combined inverse mapping can be written as
+
+ 
+
+ 
+
+u
+x
+ 
+v  = Tsource R(−φ)S 1 Tpan y  ,
+z
+1
+1
+
+(1)
+
+where z is the zoom factor, φ is the rotation angle, and the translation matrices include crop centring and the user-defined
+horizontal and vertical pan. The source value at non-integer (u, v) is obtained by interpolation. Bilinear interpolation is sufficient
+for interactive work; higher-order resampling may be used for final export.
+The framed RGB image is denoted
+
+
+
+R(x, y)
+
+
+0 ≤ R, G, B ≤ 1.
+
+C(x, y) = G(x, y) ,
+
+
+
+
+
+(2)
+
+B(x, y)
+Values are normalised to the interval [0, 1] before rendering.
+2.2 Contrast preprocessing
+The Source contrast parameter changes the distance of each channel value from a mid-grey pivot. A convenient operational form
+is
+1
+1
++ γc Cq (x, y) −
+, 0, 1 ,
+2
+2
+
+h
+
+
+
+Cq′ (x, y) = clamp
+
+
+
+i
+
+q ∈ {R, G, B},
+
+(3)
+
+where γc = 1 leaves contrast unchanged, γc > 1 increases contrast and 0 < γc < 1 compresses it. The function
+
+clamp(a, 0, 1) =
+
+
+0, a < 0,
+a,
+1,
+
+
+
+0 ≤ a ≤ 1,
+a>1
+
+(4)
+
+prevents invalid channel values. An implementation can use an equivalent image-library contrast operator, but Equation (3)
+captures the intended behaviour.
+Contrast is applied before geometric encoding. It therefore changes the distribution of widths or radii, not merely the appearance
+of a completed result. High values expand the number of locations that map to minimum or maximum geometry and can remove
+subtle tonal information.
+2.3 Channel-specific geometric coverage
+For every channel q, Percepta creates a geometric mask
+Mq (x, y) ∈ [0, 1].
+
+(5)
+
+A value of zero means that channel contributes no light at (x, y); a value of one means full channel coverage. Antialiased edges
+take intermediate values.
+The source channel is converted into a modulation amplitude by
+aq (x, y) = sat amin + s Cq′ (x, y) ,
+
+
+
+(6)
+
+where s is related to Strength, amin is the renderer’s minimum visible geometry and
+sat(a) = clamp(a, 0, 1).
+
+(7)
+
+In practice, the geometry may use a nonlinear response
+aq (x, y) = sat amin + s [Cq′ (x, y)]η ,
+
+
+
+(8)
+
+where η controls how quickly small channel values become visible. The current controls expose Strength rather than η directly; the
+equation is useful when comparing renderer implementations or future calibration modes.
+2.4 RGB displacement
+Colour separation is produced by evaluating or placing the channel structures at slightly different positions. Let the separation
+magnitude in output pixels be d. A symmetric three-channel arrangement can be represented by displacement vectors
+
+
+δR = d
+
+
+
+−1
+,
+0
+
+ 
+δG = d
+
+0
+,
+0
+
+ 
+δB = d
+
+1
+,
+0
+
+(9)
+
+or by the same vectors rotated into the local normal direction of a stripe or spiral. The renderer then uses
+
+© 2026 Virgile Adam
+
+Page 3 of 16
+
+PERCEPTA
+
+Technical Manual
+
+e q (x, y) = Mq (x − δq,x , y − δq,y ) .
+M
+
+(10)
+
+The exact orientation can be pattern-dependent. What matters perceptually is that channel supports no longer coincide perfectly.
+Where two channels overlap, additive secondary colours appear: red plus green gives yellow, green plus blue gives cyan, and red
+plus blue gives magenta.
+2.5 Additive composition
+The final RGB output is the vector image
+
+
+
+e R (x, y)
+M
+
+
+
+e G (x, y) .
+Iout (x, y) = M
+
+
+(11)
+
+
+
+e B (x, y)
+M
+On a black background, each mask directly drives the corresponding display primary. If an opacity or background term is
+introduced, a more general compositing expression is
+Iout = α ⊙ M + (1 − α) ⊙ Ibg ,
+
+(12)
+
+where ⊙ denotes element-wise multiplication. The standard Percepta appearance uses a dark background because it maximises the
+visual distinction between individual RGB elements while preserving additive mixing.
+2.6 Area-average preservation
+Consider a local pattern cell Ω whose dimensions are small compared with the scale of source variation. The mean output colour is
+1
+IΩ =
+|Ω|
+
+ZZ
+Iout (x, y) dx dy.
+
+(13)
+
+Ω
+
+A well-calibrated renderer chooses stripe widths or dot areas so that
+
+
+
+RΩ
+
+
+
+IΩ ≈ GΩ  .
+
+
+
+(14)
+
+
+
+BΩ
+This is the central conservation principle. The pattern can differ radically from the source at individual pixels while preserving
+average channel energy over a neighbourhood.
+Limitation
+Exact equality in Equation (14) is not guaranteed everywhere. Minimum widths, clipping, antialiasing, finite spacing, RGB
+displacement and source variation within a cell all introduce error. The renderer seeks a convincing perceptual approximation
+rather than lossless coding.
+2.7 Sampling and antialiasing
+Every ideal geometric mask contains sharp boundaries. Raster output samples those boundaries on a finite pixel grid. Without
+antialiasing, an ideal binary mask
+Mq(0) (x, y) ∈ {0, 1}
+
+(15)
+
+would produce stair-stepping and temporal flicker. A smoothed mask can be modelled as
+Mq (x, y) = haa ∗ Mq(0) (x, y),
+
+
+
+(16)
+
+where haa is a compact reconstruction kernel and ∗ denotes convolution. Supersampling followed by area downsampling is an
+equivalent practical method.
+Smoothing should remove pixel-grid artefacts without blurring neighbouring RGB structures together. This trade-off is especially
+important for thin diagonal lines and dense spiral turns.
+
+3 Rendering algorithms
+3.1 Common carrier formulation
+A renderer defines a carrier coordinate ξ(x, y) and a local period P . The fractional phase is
+
+
+
+ξ(x, y)
+ϕ(x, y) = frac
+P
+
+
+,
+
+0 ≤ ϕ < 1,
+
+(17)
+
+where frac(a) = a − ⌊a⌋. A centred stripe with normalised duty cycle aq is present when the periodic distance from the carrier
+centre is smaller than half that duty cycle:
+
+(
+Mq(0) (x, y) =
+
+© 2026 Virgile Adam
+
+1,
+
+ϕq (x, y) − 21 ≤
+
+0,
+
+otherwise.
+
+aq (x,y)
+,
+2
+
+(18)
+
+Page 4 of 16
+
+PERCEPTA
+
+Technical Manual
+
+The channel phase ϕq includes Colour separation. Equation (18) is a convenient mathematical description; an implementation can
+instead draw explicit variable-width polygons or stroked paths.
+3.2 Vertical stripes
+For N stripes across an output of width W , the nominal horizontal period is
+Px =
+
+W
+.
+N
+
+(19)
+
+The carrier coordinate is simply
+ξV (x, y) = x.
+
+(20)
+
+Local source values are sampled at or around the stripe position. The width of channel q can be expressed as
+wq (x, y) = Px aq (x, y),
+
+0 ≤ w q ≤ Px .
+
+(21)
+
+The strongest variation is normally evaluated along the stripe direction so that the width can change with y. Smooth interpolation
+between successive samples avoids jagged lateral edges.
+Advantages. Vertical stripes are visually simple, computationally efficient and immediately recognisable as a deliberate construction.
+They often preserve faces well because eyes, mouth and broad horizontal tonal changes intersect many carriers.
+Limitations. Very narrow vertical features can align with the gaps between carriers. Increasing N reduces this risk but makes the
+close-range pattern less bold.
+3.3 Horizontal stripes
+For N horizontal stripes across height H,
+H
+,
+N
+
+Py =
+
+ξH (x, y) = y.
+
+(22)
+
+The same modulation is applied with x and y exchanged. Width changes along x, allowing a horizontal carrier to widen and
+narrow across the image.
+Horizontal lines are well suited to landscapes, eye lines and broad lateral structures. They can, however, interact strongly with
+existing horizons or scan-line textures. Rotation in the Framing tab may be used intentionally to avoid or exploit such alignment.
+3.4 Diagonal stripes
+Let α be the stripe-normal angle measured from the horizontal image axis. The rotated carrier coordinate is
+ξD (x, y) = x cos α + y sin α.
+
+(23)
+
+The length of the output projected onto that normal is approximately
+Lα = W | cos α| + H| sin α|,
+
+(24)
+
+so a natural period for N diagonal stripes is
+Pα =
+
+Lα
+.
+N
+
+(25)
+
+The coordinate tangent to the stripe is
+τD (x, y) = −x sin α + y cos α.
+
+(26)
+
+Sampling and smoothing are performed along τD . RGB separation is most coherent when applied along the local normal
+(cos α, sin α).
+Diagonal carriers reduce axis alignment with conventional image edges and create a dynamic composition. Because they cross a
+square canvas over a longer projected distance, the default count is slightly higher than for vertical or horizontal stripes.
+3.5 Square-grid halftone
+A square halftone uses sample centres
+
+
+pij =
+
+x0 + iP
+
+y0 + jP
+
+
+,
+
+i, j ∈ Z,
+
+(27)
+
+where P is the Dot spacing. At each centre, the renderer obtains a representative channel value cq,ij , usually by local sampling
+or averaging. The maximum non-overlapping radius is P/2. A linear radius rule is
+rq,ij = rmin +
+
+
+
+P
+− rmin s [cq,ij ]η ,
+2
+
+
+
+(28)
+
+followed by clipping to the permitted interval.
+However, perceived brightness is more closely related to dot area than radius. To make area proportional to channel intensity, use
+2
+πrq,ij
+= cq,ij Amax ,
+
+© 2026 Virgile Adam
+
+(29)
+Page 5 of 16
+
+PERCEPTA
+
+Technical Manual
+
+which gives
+√
+rq,ij = rmax cq,ij .
+
+(30)
+
+Strength and minimum size can then be incorporated as
+rq,ij = rmin + (rmax − rmin )
+
+p
+
+sat(s cq,ij ).
+
+(31)
+
+The ideal circular mask is
+(0)
+Mq,ij (x, y) =
+
+
+
+∥x − (pij + δ q )∥2 ≤ rq,ij ,
+otherwise.
+
+1,
+0,
+
+(32)
+
+The channel mask is the union of all dots. Alternative dot shapes replace the Euclidean norm with a shape-specific boundary or a
+scaled vector primitive.
+3.5.1 Screen angle
+
+If the halftone grid is rotated by angle β, each centre is transformed around the image centre c:
+p′ij = c + R(β)(pij − c),
+
+
+
+cos β
+sin β
+
+R(β) =
+
+
+
+− sin β
+.
+cos β
+
+(33)
+
+Rotation changes the texture and reduces direct alignment with source or display axes. It also requires adequate overscan so that
+rotated rows cover the corners.
+3.6 Hexagonal halftone
+The hexagonal mode uses a triangular lattice. One convenient basis is
+
+"
+
+ 
+
+1
+a1 = P
+,
+0
+
+a2 = P
+
+1
+2
+√
+3
+2
+
+#
+.
+
+(34)
+
+Sample centres are
+pij = p0 + ia1 + ja2 .
+
+(35)
+
+The nearest-neighbour distance is P , and the area of one lattice cell is
+√
+
+
+
+Acell = det a1
+
+a2
+
+
+
+3 2
+P .
+2
+
+=
+
+(36)
+
+Compared with a square grid at the same nearest-neighbour spacing, the triangular lattice provides more samples per unit area
+and has six symmetric neighbour directions. This produces a less axis-biased texture. Radius mapping, Colour separation and
+antialiasing follow the same principles as the square halftone.
+3.7 Spiral stripes
+Percepta’s spiral renderer is based on a continuous Archimedean spiral. In polar coordinates around the selected centre (xc , yc ),
+r(θ) = r0 + σbθ,
+
+(37)
+
+where r0 is the initial radius, σ = +1 or −1 controls winding direction, and b determines the distance between successive turns.
+Since
+r(θ + 2π) − r(θ) = 2πb,
+
+(38)
+
+the requested turn spacing T gives
+b=
+
+T
+.
+2π
+
+(39)
+
+A point on the centreline is
+
+
+s(θ) =
+
+xc + r(θ) cos θ
+
+
+
+yc + r(θ) sin θ
+
+.
+
+(40)
+
+The tangent and normal directions are obtained from
+ds/dθ
+,
+t(θ) =
+∥ds/dθ∥2
+
+
+
+
+
+−ty (θ)
+n(θ) =
+.
+tx (θ)
+
+(41)
+
+For each channel, the source is sampled along the path and the local half-width hq (θ) is derived from intensity. The two boundaries
+of the channel ribbon are
+sq,± (θ) = s(θ) + δ q (θ) ± hq (θ)n(θ),
+
+© 2026 Virgile Adam
+
+(42)
+
+Page 6 of 16
+
+PERCEPTA
+
+Technical Manual
+
+with a separation vector naturally defined along the normal:
+δ q (θ) = dq n(θ).
+
+(43)
+
+Path smoothing filters hq (θ) before boundary construction. For a discrete sequence hq [k], a moving weighted average is
+K
+X
+
+e
+hq [k] =
+
+ωm hq [k − m]
+
+m=−K
+
+,
+
+K
+X
+
+(44)
+
+ωm
+
+m=−K
+
+where K is related to the smoothing setting. This prevents high-frequency source noise from producing unstable or self-intersecting
+edges.
+The centre controls are expressed as percentages of output dimensions:
+px
+py
+W,
+yc =
+H.
+(45)
+100
+100
+Moving the centre changes both composition and sampling. A centred spiral gives radial symmetry; an off-centre origin creates
+sweeping arcs and can place the tightest turns over a chosen feature.
+xc =
+
+Practical note
+Spiral stripes are most stable when the local ribbon width remains comfortably below the turn spacing. If Strength, minimum
+width and Colour separation together make neighbouring turns overlap excessively, highlights flatten and the spiral loses its
+readable structure.
+
+4 Controls, defaults and adaptive scaling
+4.1 Why density has pattern-specific units
+A single generic “density” number would be ambiguous because the renderers are constructed differently. Percepta therefore
+displays the physical or geometric quantity that the user actually controls.
+Table 1: Reference density defaults at an output size of 1600 px.
+
+Pattern
+
+Meaning of the density field
+
+Default
+
+Animation reference
+
+Vertical stripes
+Horizontal stripes
+Diagonal stripes
+Halftone
+Hexagonal halftone
+Spiral stripes
+
+Number of carriers across the output
+Number of carriers across the output
+Number of carriers across the projected diagonal span
+Centre-to-centre dot spacing
+Nearest-neighbour dot spacing
+Distance between successive turns
+
+14
+14
+18
+12 px
+12 px
+19 px
+
+8 → 24
+8 → 24
+10 → 28
+24 px → 7 px
+24 px → 7 px
+24 px → 6 px
+
+For stripes, a larger number means a denser pattern. For dots and spirals, a smaller spacing means a denser pattern. This reversal
+is intentional: the displayed value remains a directly interpretable geometric quantity.
+4.2 Strength
+Strength governs how strongly channel intensity changes the geometry. In the generic modulation of Equation (6), it scales the
+intensity-dependent term. Visually:
+• low Strength produces similar widths or sizes over much of the image and weak tonal contrast;
+• moderate Strength separates features while retaining coloured gaps and pattern identity;
+• high Strength drives bright regions toward maximum coverage and dark regions toward minimum coverage.
+Strength is not ordinary image contrast. Contrast modifies the source values before rendering; Strength changes how those values
+occupy geometric space. Their effects interact, so increasing both simultaneously can cause rapid saturation.
+A useful diagnostic is the fraction of samples clipped to either limit. If aq is the modulation amplitude, define
+ρclip =
+
+1
+3W H
+
+X
+
+X
+
+1[aq (x, y) ∈ {0, 1}] ,
+
+(46)
+
+q∈{R,G,B} x,y
+
+where 1[·] is an indicator function. A very large ρclip means the output is using only extreme geometry and subtle source differences
+have been lost.
+4.3 Colour separation
+The separation setting is measured in output pixels. Its relative magnitude is therefore
+d
+,
+(47)
+L
+where L is a characteristic output dimension. A fixed 10 px separation has twice the relative effect on an 800 px image as on
+a 1600 px image. Adaptive scaling can preserve appearance by scaling d with output size, although a user-edited value should
+generally remain under explicit control.
+drel =
+
+© 2026 Virgile Adam
+
+Page 7 of 16
+
+PERCEPTA
+
+Technical Manual
+
+Small separation exposes coloured edges while maintaining substantial local overlap. Large separation creates a pronounced
+chromatic offset but increases the size of the neighbourhood required for visual averaging. It may also reveal three independent
+copies of high-contrast features.
+Practical note
+When a result is attractive close up but fails to reconstruct, first reduce Colour separation before changing the pattern. This
+often restores local RGB balance without removing the chosen geometric character.
+4.4 Source contrast
+Contrast expands or compresses source values around the mid-point. It is useful when a source is flat or when the geometric
+renderer suppresses weak differences. It should be adjusted while watching both dark and bright areas.
+The contrast gain of 1.55 visible in the reference captures is intentionally assertive. It helps the example portrait survive geometric
+sampling, but a source already containing deep blacks and bright highlights may require a lower value.
+A histogram-based interpretation is helpful. If the input channel has probability density pC (c), the linear contrast transform
+changes the occupied range. Clamping accumulates probability at zero and one, producing flat black gaps or maximum-width
+geometry. The optimal value is therefore source-dependent.
+4.5 Output size
+Output size specifies the raster dimensions used for preview generation and export. For a square crop, W = H = L. Other crop
+modes use the selected aspect ratio while preserving the reference dimension convention used by the application.
+Increasing size provides:
+• more pixels along each edge and smoother raster geometry;
+• the ability to print larger at a given pixel density;
+• more accurate representation of thin RGB fringes;
+• higher memory use and longer rendering/export time.
+If the output contains W H pixels, a basic 8-bit RGB array requires approximately
+M8 = 3W H bytes.
+
+(48)
+
+A floating-point working array with three 32-bit channels requires
+M32 = 12W H bytes,
+
+(49)
+
+not including source images, masks, antialiasing buffers or animation frames. At 4000 × 4000, one RGB float buffer alone occupies
+about 192 MB.
+4.6 Adaptive defaults
+The agreed reference size is
+L0 = 1600 px.
+
+(50)
+
+To preserve approximately the same apparent geometry when the output dimension changes to L, quantities expressed as counts
+scale upward with size, whereas quantities expressed as pixel spacing also scale in pixels so that their normalised spacing remains
+constant.
+For a reference stripe count N0 , an adaptive count can be defined as
+
+
+
+h
+
+P (L) = P0
+
+L
+.
+L0
+
+N (L) = max 1, round N0
+
+L
+L0
+
+i
+
+.
+
+(51)
+
+For a reference spacing P0 ,
+(52)
+
+The same scaling applies to default RGB separation and minimum feature dimensions when the goal is scale invariance.
+For example, a 12 px dot spacing at 1600 px corresponds to
+P (3200) = 12 ×
+
+3200
+= 24 px.
+1600
+
+(53)
+
+Although the pixel spacing doubles, the output also doubles, so the number of dots across the image remains comparable.
+4.6.1 Preserving user intent
+
+Automatic defaults should update when the user changes output size only while the relevant field remains in an automatic state.
+Once the user explicitly edits a field, silently overwriting it would be surprising. A robust state model uses an “automatic/manual”
+flag for each adaptive parameter:
+
+
+Pdisplayed =
+
+P0 L/L0 ,
+Puser ,
+
+automatic state,
+manual state.
+
+(54)
+
+Resetting the pattern can restore automatic defaults.
+
+© 2026 Virgile Adam
+
+Page 8 of 16
+
+PERCEPTA
+
+Technical Manual
+
+4.7 Framing controls
+Table 2: Framing controls and their mathematical role.
+
+Control
+
+Operation
+
+Typical use
+
+Crop
+Zoom
+Pan X/Y
+Rotation
+Reset
+
+Selects output aspect ratio and visible source window
+Isotropic scale z in Equation (1)
+Translation before source resampling
+Rotation φ around the crop centre
+Restores neutral framing
+
+Square artwork, portrait, landscape or custom framing
+Make the subject fill the geometric bandwidth
+Place eyes, face or focal object relative to carriers
+Straighten the image or avoid alignment with carriers
+Return to a reproducible starting point
+
+Crop and framing are not cosmetic post-processing. They determine which source information is sampled by the pattern. A small,
+centred subject generally survives geometric encoding better than one occupying a minor fraction of a busy frame.
+4.8 Pattern-specific controls
+4.8.1 Line smoothing
+
+Smoothing acts along the carrier direction and suppresses abrupt changes in width. If raw widths are w[k], a simple exponential
+smoother is
+w[k]
+e = λw[k] + (1 − λ)w[k
+e − 1],
+
+0 < λ ≤ 1.
+
+(55)
+
+Small λ gives stronger smoothing. Excessive smoothing removes fine detail and can shift narrow features.
+4.8.2 Halftone shape, angle and minimum size
+
+Dot shape changes the support function used in Equation (32). Circular dots are rotationally neutral; square or polygonal shapes
+create stronger directional texture. Screen angle rotates the lattice. Minimum size ensures weak but nonzero channel values remain
+visible, though it also raises the background level and reduces dark contrast.
+4.8.3 Spiral centre, direction and path smoothing
+
+The centre changes the polar coordinate origin, direction changes σ in Equation (37), and path smoothing filters local ribbon
+thickness as in Equation (44). Direction alone should not change the average reconstruction, but it changes the flow of visible
+fringes and can interact with asymmetric source structure.
+
+5 Perceptual reconstruction
+5.1 Two simultaneous spatial scales
+The defining feature of a Percepta image is that it supports two readings. At high spatial resolution, the observer resolves individual
+RGB elements and sees the construction. At lower spatial resolution, the same elements are integrated and their local average
+forms the source image.
+This is not a binary switch at a precise distance. Visibility changes continuously with pattern period, contrast, display or print
+size, viewing distance, ocular optics, retinal sampling and neural contrast sensitivity. The most interesting results often occupy an
+intermediate regime in which both pattern and portrait are apparent.
+5.2 Low-pass approximation
+A first-order model represents the combined optical and neural integration by a point-spread function hv (x, y). The perceived
+image is
+Iseen (x, y; D) = (hv (·, ·; D) ∗ Iout ) (x, y),
+
+(56)
+
+where the dependence on viewing distance D indicates that one output pixel subtends a smaller visual angle as distance increases.
+A Gaussian approximation is
+
+
+
+
+
+x2 + y 2
+1
+hv (x, y; σ) =
+exp
+−
+.
+2πσ 2
+2σ 2
+
+(57)
+
+Hv (fx , fy ) = exp −2π 2 σ 2 (fx2 + fy2 ) ,
+
+(58)
+
+Its Fourier transform is also Gaussian:
+
+
+
+
+
+which attenuates high spatial frequencies more strongly than low ones. The geometric carrier lies at relatively high frequency,
+while the slowly varying source envelope lies at lower frequency. Increasing distance therefore suppresses the visible carrier before
+it suppresses the reconstructed subject.
+The visual system is not exactly Gaussian and contrast sensitivity is band-pass rather than a simple monotonic low-pass function.
+Equation (56) is nevertheless a useful explanatory and preview model.
+5.3 Visual angle and cycles per degree
+Let a physical pattern period be p millimetres and viewing distance be D millimetres. The angular period is
+θp = 2 arctan
+
+© 2026 Virgile Adam
+
+
+
+p
+.
+2D
+
+
+
+(59)
+
+Page 9 of 16
+
+PERCEPTA
+
+Technical Manual
+
+For small angles,
+p
+radians.
+D
+Converting to degrees, the corresponding spatial frequency in cycles per degree is approximately
+θp ≈
+
+fcpd ≈
+
+(60)
+
+πD
+.
+180p
+
+(61)
+
+Thus, doubling viewing distance doubles the carrier frequency expressed in cycles per degree and makes it harder to resolve.
+For a digital display with pixel pitch ppx and a geometric period of P pixels,
+p = P ppx ,
+
+(62)
+
+so Equation (61) becomes
+fcpd ≈
+
+πD
+.
+180P ppx
+
+(63)
+
+For print, pixel pitch is replaced by the physical output dimension divided by the raster dimension.
+5.4 Example viewing-distance calculation
+Suppose a 1600 px square image is printed 240 mm wide. One output pixel corresponds to
+240
+= 0.15 mm.
+1600
+
+(64)
+
+p = 12 × 0.15 = 1.8 mm.
+
+(65)
+
+π × 1000
+≈ 9.7 cycles/degree.
+180 × 1.8
+
+(66)
+
+ppx =
+A 12 px halftone spacing corresponds to
+
+At D = 1000 mm,
+fcpd ≈
+
+The dots may still be visible to an observer with normal acuity, but their chromatic substructure and local size differences are
+substantially integrated. At two metres, the frequency doubles to approximately 19.4 cycles/degree and the pattern becomes much
+less individually resolvable.
+This calculation is illustrative rather than prescriptive. Dot diameter, RGB separation, contrast, print quality and chromatic
+sensitivity all affect the actual transition.
+5.5 Chromatic and luminance sensitivity
+Human spatial resolution is generally higher for luminance variation than for purely chromatic red–green or blue–yellow variation.
+Narrow coloured fringes can therefore blend at distances where the broad light–dark envelope remains visible. This property
+benefits Percepta: the RGB carrier can lose its separate chromatic identity while the combined luminance and colour average
+continues to describe the source.
+A standard linear approximation to relative luminance from linear RGB is
+Y (x, y) = 0.2126R(x, y) + 0.7152G(x, y) + 0.0722B(x, y).
+
+(67)
+
+The coefficients reflect the strong photopic contribution of green and the weaker contribution of blue. Display RGB values are
+often gamma-encoded, so physically accurate luminance calculation requires linearisation first. If a channel value Cs is in standard
+sRGB form, the linear value Cℓ is approximately
+
+ C
+s
+
+Cs ≤ 0.04045,
+ 12.92 ,
+Cℓ = 
+
+2.4
+
+ Cs + 0.055
+, Cs > 0.04045.
+
+(68)
+
+1.055
+
+Percepta’s artistic rendering can operate directly on normalised channel values, but linear-light reasoning is useful when calibrating
+coverage so that area averages correspond more closely to emitted or reflected light.
+5.6 Coverage, gamma and apparent brightness
+If a display emits linear primary intensity over a fraction a of a local cell and black elsewhere, the physical mean channel intensity
+is proportional to a. On a gamma-encoded image, however, writing a value of one in covered pixels and zero elsewhere does not
+imply that all downstream systems preserve that linear mean. Display transfer functions, printer dot gain and image resampling
+can alter it.
+A calibrated coverage function can therefore be written
+aq = Fq−1 (Cq′ ),
+
+(69)
+
+where Fq is the measured relationship between geometric coverage and perceived or printed channel response. The current
+application emphasises direct creative control rather than device-specific calibration, but Equation (69) identifies a possible future
+extension.
+© 2026 Virgile Adam
+
+Page 10 of 16
+
+PERCEPTA
+
+Technical Manual
+
+5.7 Why density changes recognisability
+Let the carrier period be P pixels and a source feature have characteristic width Lf pixels. The number of pattern periods sampling
+that feature is roughly
+nf =
+
+Lf
+.
+P
+
+(70)
+
+When nf < 1, the feature can fall between samples or be represented by only part of one geometric element. When nf is several
+units or more, its variation is distributed across multiple elements and is easier to reconstruct.
+Increasing stripe count reduces P and increases nf . Decreasing dot or turn spacing has the same effect. The trade-off is that fine
+carriers become less visible as artwork at close range and can become vulnerable to display or printer resolution limits.
+5.8 Colour separation and integration neighbourhood
+If red and blue structures are separated by a distance 2d, a visual averaging kernel must span a comparable scale before their
+contributions recombine. In the Gaussian model, the relative attenuation of a carrier frequency f is given by Equation (58).
+Increasing separation introduces lower-frequency chromatic differences, which require stronger blur or greater viewing distance to
+suppress.
+This explains why Colour separation and density should be adjusted together. A dense pattern with moderate separation can
+reconstruct at a convenient distance. A sparse pattern with large separation may require the observer to move far enough away
+that source detail is also lost.
+5.9 A computational preview of distant viewing
+A useful software preview is to downsample the output and then enlarge it for inspection. Let Dk be area downsampling by factor
+k and Uk be display enlargement. The preview is
+Ipreview = Uk (Dk (Iout )) .
+
+(71)
+
+Area downsampling approximates local integration. A Gaussian blur followed by downsampling better suppresses aliasing:
+Ipreview = Uk [Dk (hσ ∗ Iout )] .
+
+(72)
+
+This preview cannot reproduce an observer’s exact contrast sensitivity or a print’s physical behaviour, but it provides a rapid
+estimate of whether local RGB averages reconstruct the source.
+Principle
+The illusion is strongest when the geometric carrier is high enough in spatial frequency to be integrated at the intended
+viewing distance, while source features remain low enough in frequency to survive that integration.
+
+6 Density animation and export
+6.1 Animation purpose
+A static Percepta image asks the observer to change viewing distance or zoom. Density animation performs a related transformation
+in time. It changes the spatial scale of the geometry while retaining the same source and rendering family. A sparse opening frame
+foregrounds the construction; a denser frame carries more source detail. The animation can therefore reveal how the illusion is
+built.
+
+Density animation: geometry changes, image information remains
+Example storyboard for a stripe animation from sparse to dense
+
+Sparse
+
+Balanced
+
+Dense
+
+At distance
+
+8 stripes
+
+14 stripes
+
+24 stripes
+
+visual averaging
+
+Figure 3: Storyboard of a stripe-density animation. The application interpolates the active density parameter, not the source image.
+
+6.2 Time normalisation
+Let the requested duration be T seconds and the time of a frame be t ∈ [0, T ]. Normalised time is
+u = clamp
+
+
+
+t
+, 0, 1 .
+T
+
+
+
+(73)
+
+An easing function E(u) maps this interval to an interpolation phase. Linear interpolation uses
+© 2026 Virgile Adam
+
+Page 11 of 16
+
+PERCEPTA
+
+Technical Manual
+
+Elin (u) = u.
+
+(74)
+
+A smoothstep easing with zero first derivative at both ends is
+Esmooth (u) = 3u2 − 2u3 .
+
+(75)
+
+Esmoother (u) = 6u5 − 15u4 + 10u3 .
+
+(76)
+
+A stronger quintic smoother is
+
+The user-facing easing selector can expose one or more of these choices. Linear motion makes parameter speed constant; smooth
+easing makes the start and end less abrupt.
+6.3 Parameter interpolation
+For start value p0 and end value p1 ,
+p(t) = p0 + (p1 − p0 ) E
+
+t
+T
+
+ 
+
+.
+
+(77)
+
+N (t) = max(1, round[p(t)]) .
+
+(78)
+
+Stripe counts must be integer-valued, so the rendered count is
+
+Dot and turn spacing can remain real-valued until geometry is rasterised. This produces smoother animation than rounding
+spacing to integer pixels at every frame.
+For halftone and spiral examples, animation commonly proceeds from a large spacing to a small spacing. Although the numeric
+value decreases, geometric density increases.
+6.4 Ping-pong phase
+Ping-pong playback traverses the range forward and then backward. For a repeating phase u ∈ [0, 1), a triangular phase is
+u△ = 1 − |2u − 1| .
+
+(79)
+
+ppp (t) = p0 + (p1 − p0 ) E(u△ ).
+
+(80)
+
+The animated parameter becomes
+
+If the exported duration T is intended to include a full forward-and-back cycle, u should span the triangle once over T . If T
+describes only the forward leg, the full ping-pong duration is 2T . The interface and export metadata should use one convention
+consistently.
+6.5 Frame rate and frame count
+At frame rate F frames per second, a practical inclusive frame count is
+Nf = ⌊T F ⌋ + 1.
+
+(81)
+
+Frame times can be defined by
+tk =
+
+k
+T,
+Nf − 1
+
+k = 0, 1, . . . , Nf − 1.
+
+(82)
+
+This includes the exact start and end states. For seamless looping, duplicating the terminal frame may cause a visible pause. Loop
+export can omit one duplicate endpoint or use timing metadata to maintain constant motion.
+The raw uncompressed memory required to hold all RGB frames is approximately
+Manim = 3W HNf bytes
+
+(83)
+
+for 8-bit RGB. A 1600 px square, four-second animation at 12 FPS contains about 49 frames and would require approximately 376
+MB if every frame were retained uncompressed. Streaming frames directly to the encoder is therefore preferable.
+6.6 Recommended animation ranges
+The following ranges are designed to show a meaningful transition without passing through excessively sparse or computationally
+wasteful states.
+Table 3: Reference density animation ranges at 1600 px.
+
+Pattern
+
+Start
+
+End
+
+Interpretation
+
+Vertical stripes
+Horizontal stripes
+Diagonal stripes
+Halftone
+Hexagonal halftone
+Spiral stripes
+
+8
+8
+10
+24 px
+24 px
+24 px
+
+24
+24
+28
+7 px
+7 px
+6 px
+
+Threefold increase in carrier count
+Threefold increase in carrier count
+Denser range compensates for projected span
+Coarse dots become a detailed screen
+Coarse triangular lattice becomes dense
+Widely spaced turns tighten around the image
+
+© 2026 Virgile Adam
+
+Page 12 of 16
+
+PERCEPTA
+
+Technical Manual
+
+At higher output sizes, these values can be adaptively scaled using Equations (51) and (52).
+6.7 Preview, playback and saving
+The animation controls serve distinct purposes:
+• Preview prepares or displays a reduced-resolution sequence for rapid evaluation.
+• Play advances frames from the current position.
+• Pause retains the current frame and allows playback to resume.
+• Stop returns to a defined initial state.
+• Save renders the requested output resolution and passes frames to the selected encoder.
+Preview should prioritise responsiveness; final save should prioritise geometric and colour fidelity. A reduced preview can use lower
+output size or fewer frames, provided the interface clearly indicates that final export is rendered separately.
+6.8 Still-image export formats
+6.8.1 PNG
+
+PNG is a lossless raster format suitable for the web, presentations and general image workflows. It preserves narrow coloured
+structures without JPEG blocking or chroma subsampling. File size can be large for detailed RGB patterns because the geometry
+contains many sharp colour transitions.
+6.8.2 TIFF
+
+TIFF is appropriate for high-resolution masters and print workflows. Depending on the writer, it can store lossless compression,
+metadata and higher bit depth. A print provider may prefer TIFF when the image is ultimately rasterised.
+6.8.3 SVG
+
+SVG represents geometric primitives as vectors. It is valuable for stripes, circles and spiral paths because the result can be
+scaled without pixelation. However, file size and rendering complexity can become high when every small dot or path segment is
+represented separately. Effects implemented only in raster form must either be approximated or embedded as raster content.
+6.8.4 PDF
+
+PDF is convenient for page-based distribution and professional printing. Vector-capable renderers can retain scalable geometry;
+raster output can also be embedded at a controlled physical size. The PDF page and artwork dimensions should be set intentionally
+rather than relying on a viewer’s default scaling.
+6.9 Physical print size and raster resolution
+If the raster width is W pixels and the print width is S inches, the effective pixel density is
+W
+.
+S
+
+(84)
+
+W
+.
+PPI
+
+(85)
+
+PPI =
+Conversely,
+S=
+
+A 4000 px output printed at 300 PPI is approximately 13.3 inches (33.9 cm) wide. At 200 PPI it is 20 inches (50.8 cm) wide.
+Geometric art can often tolerate lower PPI than photography, but thin RGB gaps must remain resolvable by the printer.
+The physical period of a P -pixel pattern element is
+pmm = 25.4
+
+P
+.
+PPI
+
+(86)
+
+This quantity, together with viewing distance, determines visual angle through Equation (59).
+6.10 Colour management and printing
+Percepta is based on additive RGB mixing on screen. Printing uses subtractive inks and introduces dot gain, paper colour, ink
+limits and a device profile. A printed result can therefore differ from its emissive display preview.
+Recommended practice:
+1. retain an RGB master and avoid repeated format conversions;
+2. use a colour-managed application for proofing;
+3. ask the printer for the intended ICC profile and rendering conditions;
+4. make a small physical proof at final scale;
+5. verify that the thinnest coloured structures do not disappear or merge;
+6. disable uncontrolled “photo enhancement” in consumer printer drivers.
+Limitation
+An SVG or PDF is not automatically print-safe. Vector geometry can be thinner than the output device can reproduce, and
+saturated RGB colours may lie outside the printer gamut. Physical proofing remains essential for important work.
+
+7 Practical method, quality control and limitations
+7.1 Choosing a source image
+Percepta can process any conventional image, but not every source produces an equally convincing illusion. The encoder has finite
+spatial bandwidth: details smaller than the pattern period cannot be represented reliably. Sources with a clear hierarchy therefore
+© 2026 Virgile Adam
+
+Page 13 of 16
+
+PERCEPTA
+
+Technical Manual
+
+perform best.
+Favour images with:
+• one dominant subject occupying a substantial fraction of the frame;
+• recognisable silhouettes and medium-scale features;
+• adequate separation between subject and background;
+• controlled highlights and shadows;
+• colour variation that remains meaningful after local averaging.
+Potentially difficult sources include distant crowds, foliage, text-heavy scenes, repeating fabrics, fine hair against a busy background
+and images whose identity depends on one-pixel-scale detail.
+7.2 Pattern selection by subject
+Table 4: Starting pattern recommendations.
+
+Subject
+
+Recommended starting modes
+
+Reason
+
+Portrait
+
+Vertical stripes, Halftone, Spiral
+
+Landscape
+
+Horizontal stripes, Hexagonal halftone
+
+Architecture
+
+Diagonal stripes, Hexagonal halftone
+
+Graphic logo
+
+Vertical/Horizontal stripes, Halftone
+
+Highly textured image
+
+Dense halftone or dense stripes
+
+Abstract source
+
+Spiral or strong Colour separation
+
+Faces tolerate controlled simplification and are
+recognised from medium-scale features
+Horizons and broad tonal regions align
+naturally with lateral or isotropic sampling
+Diagonal carriers avoid simple axis coincidence;
+hex grids reduce directional bias
+Flat regions and strong boundaries translate
+clearly into coverage
+More samples are required to preserve local
+variation
+Pattern character can take precedence over
+literal reconstruction
+
+These are starting points rather than rules. A deliberate mismatch between subject and carrier can be aesthetically productive.
+7.3 A controlled optimisation sequence
+Changing several controls at once makes it difficult to identify the cause of improvement. The following one-variable sequence is
+recommended.
+1. Lock framing. Place the subject and do not change the crop during the first comparison.
+2. Compare pattern families at their defaults. Choose the structure whose close-range appearance suits the project.
+3. Sweep density. Test at least one sparse, one reference and one dense value.
+4. Set Strength. Increase until important tonal regions separate, then step back if highlights merge.
+5. Set Source contrast. Use the smallest increase that restores recognisability.
+6. Add Colour separation. Stop before the channels become independent copies at the intended viewing distance.
+7. Tune pattern-specific smoothing or minimum size.
+8. Test final dimensions. Increase output size and check adaptive values.
+9. Proof the export. Inspect actual PNG/TIFF/SVG/PDF output, not only the live preview.
+7.4 Quantitative quality indicators
+Perceptual judgement remains central, but several numerical indicators can help diagnose a result.
+7.4.1 Low-pass reconstruction error
+
+Let L be a low-pass operator approximating distant viewing. Compare the filtered output with a filtered version of the framed
+source:
+ELP =
+
+1 X
+2
+L[Iout ](x, y) − L[C′ ](x, y) 2 .
+3W H
+
+(87)
+
+x,y
+
+A smaller value indicates better preservation at the selected integration scale. It does not measure the artistic quality of the visible
+pattern.
+7.4.2 Structural carrier visibility
+
+A high-pass operator H can estimate how strongly the geometric pattern remains visible:
+Vcarrier =
+
+1 X
+∥H[Iout ](x, y)∥22 .
+3W H
+
+(88)
+
+x,y
+
+Percepta’s artistic objective is not to minimise Vcarrier . A successful result often balances low reconstruction error with enough
+high-frequency energy to make the construction visually compelling.
+7.4.3 Gamut and clipping rate
+
+The clipping fraction in Equation (46) can be extended to exported RGB values. Large areas at exact 0 or 1 may be intended, but
+unexpected clipping can reveal excessive contrast or overlapping channel geometry.
+
+© 2026 Virgile Adam
+
+Page 14 of 16
+
+PERCEPTA
+
+Technical Manual
+
+7.5 Troubleshooting guide
+Symptom
+
+Likely cause
+
+Corrective action
+
+Source is not recognisable
+
+Pattern too sparse; source too small in frame;
+weak tonal separation
+Excessive Strength, contrast or overlap
+
+Increase stripe count or reduce spacing; crop
+tighter; raise contrast moderately
+Lower Strength; reduce contrast; reduce
+minimum size; inspect bright-source clipping
+Reduce separation; use denser geometry;
+increase viewing distance
+Reduce minimum size; reduce smoothing;
+inspect source black level
+Increase output size; enable smoothing;
+export vector when appropriate
+Increase supersampling/output size; use
+antialiased vector paths
+Increase turn spacing; lower Strength or
+separation
+Omit duplicated endpoint; adjust loop timing;
+use ping-pong phase consistently
+Use lossless raster; reduce
+dimensions/FPS/duration; stream frames to
+encoder
+Make a final-size proof; increase feature
+width; avoid driver resampling
+
+Image becomes nearly
+white
+RGB copies are visible separately
+Dark regions contain too
+much colour
+Thin lines flicker or break
+Diagonal
+edges
+jagged
+Spiral turns collide
+
+look
+
+Animation pauses at loop
+point
+Export is unexpectedly
+large
+Print loses coloured gaps
+
+Colour separation too large for
+density/viewing distance
+Minimum geometry too large or smoothing
+spreads bright features
+Insufficient raster resolution or antialiasing
+Raster grid aliasing
+Turn spacing too small relative to
+width/separation
+Duplicate terminal frame or endpoint easing
+Dense vector geometry or many animation
+frames
+Printer resolution, dot gain or scaling
+
+7.6 Computational complexity
+For a raster output of W × H pixels, preprocessing and mask composition are generally O(W H). Stripe renderers can also be
+implemented in O(W H) by evaluating carrier phase per pixel or by rasterising paths whose total sampled length scales with image
+area at fixed density.
+A halftone with spacing P contains approximately
+WH
+P2
+
+(89)
+
+2W H
+Nhex ≈ √
+3P 2
+
+(90)
+
+Ndots ≈
+for a square grid, and
+
+for a triangular lattice. Vector export cost grows with the number of primitives, whereas raster cost remains dominated by the
+output pixel count.
+For an Archimedean spiral extending to radius Rmax with turn spacing T , the number of turns is approximately
+Nturns ≈
+
+Rmax
+.
+T
+
+(91)
+
+The arc length from θ = 0 to θ = Θ is
+
+Z Θr
+r(θ)2 +
+
+ℓ(Θ) =
+0
+
+
+
+dr
+dθ
+
+2
+
+dθ.
+
+(92)
+
+Dense spirals therefore require many path samples and can be more expensive than simple stripes.
+7.7 Known limitations
+Limitation
+Percepta is an artistic perceptual encoder, not a reversible compression method. Fine detail is intentionally discarded, and
+the original image cannot be recovered exactly from the output.
+The principal limitations are:
+• Source dependence. Optimal settings vary with composition, contrast and scale.
+• Observer dependence. Visual acuity, colour vision and viewing conditions alter the effect.
+• Device dependence. Displays and printers differ in gamut, resolution, transfer function and scaling.
+• Sampling loss. Features smaller than the carrier period cannot be represented faithfully.
+• Edge interaction. RGB separation can create coloured ghosts around high-contrast boundaries.
+• Raster/vector differences. Antialiasing and path tessellation can cause small differences between preview and export.
+• Animation cost. High-resolution sequences multiply rendering and encoding requirements.
+7.8 Implementation and distribution
+The current application is designed around a compact Python/PyQt6 project. A clean distribution can contain the executable
+source entry point and an assets folder, with the launcher responsible for component checks and packaged execution.
+
+© 2026 Virgile Adam
+
+Page 15 of 16
+
+PERCEPTA
+
+Technical Manual
+
+The runtime requirements used by the project include Python 3.10 or newer, PyQt6, NumPy, Pillow, imageio and imageio-ffmpeg.
+A packaged Windows build can use PyInstaller. The startup sequence may display the Percepta splash screen, check components
+once per application version and store state in the user’s application-data directory.
+Still-image export should be deterministic for a fixed source, framing state, pattern and parameter set. Reproducibility is improved
+by storing:
+• application version;
+• source file identity and dimensions;
+• crop and affine framing parameters;
+• pattern name and every common/pattern-specific parameter;
+• output dimensions and export format;
+• animation timing and easing when applicable.
+A future preset or sidecar format could serialise these values in JSON.
+7.9 Possible extensions
+The existing model naturally supports several extensions without changing its core identity:
+• perceptual or device-calibrated coverage functions Fq−1 ;
+• automatic density selection based on source spatial frequency;
+• GPU rasterisation for high-resolution animation;
+• batch rendering and preset comparison sheets;
+• objective low-pass reconstruction previews and error maps;
+• additional continuous paths or lattice families;
+• colour-management metadata and printer-specific proof modes.
+These are development possibilities rather than current user features.
+
+8 Glossary, notation and references
+8.1 Compact glossary
+Additive RGB composition. Combination of red, green and blue light;
+full coincident channels produce white on an emissive display.
+Antialiasing. Partial edge coverage or supersampling used to reduce
+stair-stepping and flicker.
+Carrier. Repeated line, lattice or path whose local width or size carries
+image information.
+Chromatic fringe. Coloured boundary produced by relative RGB displacement.
+Coverage. Fraction of a local cell occupied by one channel’s geometry.
+Cycles per degree. Number of repeated cycles subtending one degree of
+visual angle.
+Density. Stripe count, dot spacing or spiral turn spacing, depending on
+the renderer.
+Duty cycle. Fraction of a period occupied by a stripe.
+Halftone. Continuous-tone representation using variable-size repeated
+dots.
+Point-spread function. Spatial response to an ideal point, used here as
+
+an approximation of optical and neural blur.
+Spatial frequency. Rate of repetition or change across visual space.
+Strength. Amplitude of intensity-to-geometry modulation.
+
+8.2 Further reading
+
+References
+[1] F. W. Campbell and J. G. Robson, “Application of Fourier analysis to the visibility of gratings,” J. Physiol., 197(3), 551–566, 1968.
+doi:10.1113/jphysiol.1968.sp008574.
+[2] K. T. Mullen, “The contrast sensitivity of human colour vision to red–
+green and blue–yellow chromatic gratings,” J. Physiol., 359, 381–400,
+1985. doi:10.1113/jphysiol.1985.sp015591.
+[3] E. Peli, “Contrast in complex images,” JOSA A, 7(10), 2032–2040,
+1990. doi:10.1364/JOSAA.7.002032.
+[4] R. L. De Valois and K. K. De Valois, Spatial Vision. Oxford University
+Press, 1988. ISBN 0-19-505019-3.
+
+8.3 Principal notation
+Symbol
+
+Meaning
+
+W, H
+R, G, B
+P
+r
+D
+
+Output dimensions
+Source channels
+Carrier spacing
+Dot/polar radius
+Viewing distance
+
+Symbol
+x, y
+Mq
+N
+T
+fcpd
+
+Meaning
+
+Symbol
+
+Output coordinates
+Channel mask
+Stripe count
+Turn spacing or duration
+Cycles per degree
+
+u, v
+aq
+d
+F
+L0
+
+Meaning
+Source coordinates
+Geometric amplitude
+Colour separation
+Frames per second
+1600 px reference size
+
+8.4 Document status
+This manual describes Percepta version 0.31.0 and the interface supplied in July 2026. The equations form a coherent technical
+specification of observed behaviour; they are not a verbatim listing of source-code operations. Default values and figures should be
+updated when the application changes.
+
+PERCEPTA Perceptual pattern image generator
+www.virgile-adam.com
+
+© 2026 Virgile Adam
+
+|
+
+virgile.adam@ibs.fr
+
+Page 16 of 16
+
+
