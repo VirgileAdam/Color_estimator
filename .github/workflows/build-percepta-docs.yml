@@ -1,0 +1,101 @@
+name: Build Percepta documentation
+
+on:
+  push:
+    branches:
+      - percepta-docs-build-20260718
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out documentation source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python document tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pillow numpy imageio pymupdf
+
+      - name: Generate illustrated assets
+        run: python generate_percepta_assets.py
+
+      - name: Install LaTeX
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-base texlive-latex-recommended texlive-latex-extra \
+            texlive-fonts-recommended texlive-pictures lmodern
+
+      - name: Apply compatibility fixes
+        run: |
+          sed -i 's/\\node\[Muted\]/\\node[text=Muted]/g' Percepta_Documentation/docs/Percepta_Technical_Manual.tex
+          sed -i 's/\\node\[white,/\\node[text=white,/g' Percepta_Documentation/docs/Percepta_Technical_Manual.tex
+          sed -i 's/,Muted\]/,text=Muted]/g' Percepta_Documentation/docs/Percepta_Technical_Manual.tex
+          sed -i 's/helvB/hebo/g' assemble_percepta_pdf.py
+
+      - name: Typeset technical manual
+        working-directory: Percepta_Documentation/docs
+        run: |
+          pdflatex -interaction=nonstopmode -halt-on-error -jobname=Percepta_Technical_Manual_base Percepta_Technical_Manual.tex
+          pdflatex -interaction=nonstopmode -halt-on-error -jobname=Percepta_Technical_Manual_base Percepta_Technical_Manual.tex
+
+      - name: Assemble illustrated PDF
+        run: python assemble_percepta_pdf.py
+
+      - name: Validate deliverables
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import fitz
+          pdf = Path('Percepta_Documentation/docs/Percepta_Technical_Manual.pdf')
+          readme = Path('Percepta_Documentation/README.md')
+          assert pdf.exists() and pdf.stat().st_size > 300_000
+          assert readme.exists() and readme.stat().st_size > 5_000
+          doc = fitz.open(pdf)
+          assert doc.page_count >= 12
+          print(f'Validated PDF: {doc.page_count} pages, {pdf.stat().st_size / 1024:.0f} KiB')
+          doc.close()
+          PY
+
+      - name: Clean build intermediates
+        run: |
+          rm -f Percepta_Documentation/docs/Percepta_Technical_Manual_base.pdf
+          rm -f Percepta_Documentation/docs/*.aux Percepta_Documentation/docs/*.log
+          rm -f Percepta_Documentation/docs/*.out Percepta_Documentation/docs/*.toc
+          rm -rf Percepta_Documentation/docs/images/crops
+          cat > Percepta_Documentation/BUILD_INFO.txt <<'EOF'
+          Percepta documentation package
+          Software version: 0.31.0
+          Documentation: English
+          Contents: illustrated GitHub README, typeset technical manual PDF,
+          editable LaTeX source, renderer screenshots and density animation.
+          Generated for Virgile Adam, July 2026.
+          EOF
+
+      - name: Create distribution archive
+        run: |
+          zip -9 -r Percepta_Documentation_Package.zip Percepta_Documentation
+
+      - name: Upload documentation package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Percepta_Documentation_Package
+          path: |
+            Percepta_Documentation_Package.zip
+            Percepta_Documentation/docs/Percepta_Technical_Manual.pdf
+            Percepta_Documentation/README.md
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
